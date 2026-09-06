@@ -1,0 +1,280 @@
+// src/i18n.ts
+
+export type Language = 'uz' | 'ru' | 'en';
+
+export const translations = {
+	uz: {
+		// Navigatsiya
+		dashboard: 'Dashboard',
+		mijozlar: 'Mijozlar',
+		hodimlar: 'Hodimlar',
+		kirim: 'Kirim',
+		chiqim: 'Chiqim',
+		maosh: 'Maosh',
+
+		// Dashboard kartochkalari
+		tushganKirim: 'Tushgan Kirim',
+		umumiyChiqim: 'Umumiy Chiqim',
+		sofFoyda: 'Sof Foyda',
+		zarar: 'Zarar',
+		xodimlargaQarz: 'Xodimlarga Qarz',
+		kutilmoqda: 'Kutilmoqda',
+		ijobiyBalans: 'Ijobiy balans',
+		xarajatOshdi: 'Xarajat daromaddan oshdi',
+
+		// Dashboard grafika
+		oylikDinamika: 'Oylik Kirim va Chiqim Dinamikasi',
+		chiqimStrukturasi: 'Chiqimlar Strukturasi',
+		operatsionChiqim: 'Operatsion Chiqim',
+		maoshChiqim: 'Maosh Chiqim',
+
+		// Jadval ustunlari
+		id: 'ID',
+		kompaniya: 'Kompaniya',
+		masulShaxs: 'Mas’ul shaxs',
+		telefon: 'Telefon',
+		inn: 'INN',
+		holat: 'Holat',
+		izoh: 'Izoh',
+		amallar: 'Amallar',
+		xizmatTuri: 'Xizmat turi',
+		summa: 'Summa',
+		sana: 'Sana',
+		invoice: 'Invoice',
+		kategoriya: 'Kategoriya',
+		tavsif: 'Tavsif',
+		ismFamiliya: 'Ism-familiya',
+		lavozim: 'Lavozim',
+		bolim: 'Bo‘lim',
+		oylikMaosh: 'Oylik maosh',
+		davr: 'Davr (Oy)',
+		belgilangan: 'Belgilangan',
+		berilgan: 'Berilgan',
+		qoldiq: 'Qoldiq (Qarz)',
+
+		// Tugmalar va amallar
+		yangiMijoz: '+ Yangi mijoz',
+		yangiHodim: '+ Yangi hodim',
+		yangiKirim: '+ Yangi kirim',
+		yangiChiqim: '+ Yangi chiqim',
+		yangiMaosh: '+ Maosh to‘lovi yozish',
+		tahrirlash: 'Tahrirlash',
+		ochirish: 'O‘chirish',
+		saqlash: 'Saqlash',
+		bekorQilish: 'Bekor qilish',
+		qidirish: 'Qidirish...',
+		barchaHolatlar: 'Barcha holatlar',
+		barchaKategoriyalar: 'Barcha kategoriyalar',
+
+		statuslar: {
+			Faol: 'Faol',
+			Kutilmoqda: 'Kutilmoqda',
+			Nofaol: 'Nofaol',
+			Tolangan: "To'langan",
+			Bekor: 'Bekor',
+			"Ta'tilda": "Ta'tilda",
+			Qarzli: 'Qarzli',
+		},
+
+		// Chiqim kategoriyalari
+		chiqimKategoriyalari: {
+			Ijara: 'Ijara',
+			'Ofis xarajat': 'Ofis xarajati',
+			Kommunal: 'Kommunal',
+			Transport: 'Transport',
+			Marketing: 'Marketing',
+			"Dasturiy ta'minot": "Dasturiy ta'minot",
+			Boshqa: 'Boshqa',
+		},
+
+		// Kirim xizmat turlari
+		kirimTurlari: {
+			'Buxgalteriya hisobi': 'Buxgalteriya hisobi',
+			Audit: 'Audit',
+			Konsultatsiya: 'Konsultatsiya',
+			'Qayta tiklash': 'Qayta tiklash',
+			Boshqa: 'Boshqa',
+		},
+	},
+	ru: {
+		// Navigatsiya
+		dashboard: 'Дашборд',
+		mijozlar: 'Клиенты',
+		hodimlar: 'Сотрудники',
+		kirim: 'Доходы',
+		chiqim: 'Расходы',
+		maosh: 'Зарплата',
+
+		// Dashboard kartochkalari
+		tushganKirim: 'Поступивший доход',
+		umumiyChiqim: 'Общий расход',
+		sofFoyda: 'Чистая прибыль',
+		zarar: 'Убыток',
+		xodimlargaQarz: 'Долг по зарплате',
+		kutilmoqda: 'Ожидается',
+		ijobiyBalans: 'Положительный баланс',
+		xarajatOshdi: 'Расход превысил доход',
+
+		// Dashboard grafika
+		oylikDinamika: 'Ежемесячная динамика доходов и расходов',
+		chiqimStrukturasi: 'Структура расходов',
+		operatsionChiqim: 'Операционные расходы',
+		maoshChiqim: 'Выплата зарплаты',
+
+		// Jadval ustunlari
+		id: 'ID',
+		kompaniya: 'Компания',
+		masulShaxs: 'Контактное лицо',
+		telefon: 'Телефон',
+		inn: 'ИНН',
+		holat: 'Статус',
+		izoh: 'Примечание',
+		amallar: 'Действия',
+		xizmatTuri: 'Вид услуги',
+		summa: 'Сумма',
+		sana: 'Дата',
+		invoice: 'Инвойс',
+		kategoriya: 'Категория',
+		tavsif: 'Описание',
+		ismFamiliya: 'Ф.И.О.',
+		lavozim: 'Должность',
+		bolim: 'Отдел',
+		oylikMaosh: 'Оклад',
+		davr: 'Период (Месяц)',
+		belgilangan: 'Начислено',
+		berilgan: 'Выплачено',
+		qoldiq: 'Остаток (Долг)',
+
+		// Tugmalar va amallar
+		yangiMijoz: '+ Новый клиент',
+		yangiHodim: '+ Новый сотрудник',
+		yangiKirim: '+ Новый доход',
+		yangiChiqim: '+ Новый расход',
+		yangiMaosh: '+ Выплата зарплаты',
+		tahrirlash: 'Редактировать',
+		ochirish: 'Удалить',
+		saqlash: 'Сохранить',
+		bekorQilish: 'Отмена',
+		qidirish: 'Поиск...',
+		barchaHolatlar: 'Все статусы',
+		barchaKategoriyalar: 'Все категории',
+
+		statuslar: {
+			Faol: 'Активный',
+			Kutilmoqda: 'Ожидается',
+			Nofaol: 'Неактивный',
+			Tolangan: 'Оплачено',
+			Bekor: 'Отменено',
+			"Ta'tilda": 'В отпуске',
+			Qarzli: 'С долгом',
+		},
+
+		chiqimKategoriyalari: {
+			Ijara: 'Аренда',
+			'Ofis xarajat': 'Офисные расходы',
+			Kommunal: 'Коммунальные',
+			Transport: 'Транспорт',
+			Marketing: 'Маркетинг',
+			"Dasturiy ta'minot": 'Программное обеспечение',
+			Boshqa: 'Другое',
+		},
+
+		kirimTurlari: {
+			'Buxgalteriya hisobi': 'Бухгалтерский учет',
+			Audit: 'Аудит',
+			Konsultatsiya: 'Консультация',
+			'Qayta tiklash': 'Восстановление учета',
+			Boshqa: 'Другое',
+		},
+	},
+	en: {
+		// Navigatsiya
+		dashboard: 'Dashboard',
+		mijozlar: 'Clients',
+		hodimlar: 'Employees',
+		kirim: 'Inflow',
+		chiqim: 'Expenses',
+		maosh: 'Payroll',
+
+		// Dashboard kartochkalari
+		tushganKirim: 'Total Inflow',
+		umumiyChiqim: 'Total Expenses',
+		sofFoyda: 'Net Profit',
+		zarar: 'Net Loss',
+		xodimlargaQarz: 'Payroll Debt',
+		kutilmoqda: 'Pending',
+		ijobiyBalans: 'Positive balance',
+		xarajatOshdi: 'Expenses exceeded revenue',
+
+		// Dashboard grafika
+		oylikDinamika: 'Monthly Inflow vs Outflow Trend',
+		chiqimStrukturasi: 'Expense Breakdown',
+		operatsionChiqim: 'Operating Expenses',
+		maoshChiqim: 'Payroll Paid',
+
+		// Jadval ustunlari
+		id: 'ID',
+		kompaniya: 'Company',
+		masulShaxs: 'Contact Person',
+		telefon: 'Phone',
+		inn: 'Tax ID (INN)',
+		holat: 'Status',
+		izoh: 'Notes',
+		amallar: 'Actions',
+		xizmatTuri: 'Service Type',
+		summa: 'Amount',
+		sana: 'Date',
+		invoice: 'Invoice',
+		kategoriya: 'Category',
+		tavsif: 'Description',
+		ismFamiliya: 'Full Name',
+		lavozim: 'Position',
+		bolim: 'Department',
+		oylikMaosh: 'Base Salary',
+		davr: 'Period (Month)',
+		belgilangan: 'Accrued',
+		berilgan: 'Paid',
+		qoldiq: 'Remaining (Debt)',
+
+		// Tugmalar va amallar
+		yangiMijoz: '+ New Client',
+		yangiHodim: '+ New Employee',
+		yangiKirim: '+ New Inflow',
+		yangiChiqim: '+ New Expense',
+		yangiMaosh: '+ Record Payroll',
+		tahrirlash: 'Edit',
+		ochirish: 'Delete',
+		saqlash: 'Save',
+		bekorQilish: 'Cancel',
+		qidirish: 'Search...',
+		barchaHolatlar: 'All statuses',
+		barchaKategoriyalar: 'All categories',
+		statuslar: {
+			Faol: 'Active',
+			Kutilmoqda: 'Pending',
+			Nofaol: 'Inactive',
+			Tolangan: 'Paid',
+			Bekor: 'Cancelled',
+			"Ta'tilda": 'On leave',
+			Qarzli: 'Indebted',
+		},
+
+		chiqimKategoriyalari: {
+			Ijara: 'Rent',
+			'Ofis xarajat': 'Office expenses',
+			Kommunal: 'Utilities',
+			Transport: 'Transportation',
+			Marketing: 'Marketing',
+			"Dasturiy ta'minot": 'Software',
+			Boshqa: 'Other',
+		},
+
+		kirimTurlari: {
+			'Buxgalteriya hisobi': 'Accounting',
+			Audit: 'Audit',
+			Konsultatsiya: 'Consulting',
+			'Qayta tiklash': 'Bookkeeping recovery',
+			Boshqa: 'Other',
+		},
+	},
+};
