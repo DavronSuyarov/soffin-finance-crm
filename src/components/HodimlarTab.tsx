@@ -1,9 +1,10 @@
 // src/components/HodimlarTab.tsx
 import React, { useState } from 'react';
-import { Hodim, StatusHodim } from '../types.js';
-import { StatusBadge } from './StatusBadge';
-import { Modal } from './Modal';
 import { translations } from '../i18n.js';
+import { Hodim, StatusHodim } from '../types.js';
+import { generateNextId } from '../utils';
+import { Modal } from './Modal';
+import { StatusBadge } from './StatusBadge';
 
 interface HodimlarTabProps {
 	hodimlar: Hodim[];
@@ -86,7 +87,7 @@ export const HodimlarTab: React.FC<HodimlarTabProps> = ({
 			});
 		} else {
 			onAddHodim({
-				id: `H${String(hodimlar.length + 1).padStart(3, '0')}`,
+				id: generateNextId('H', hodimlar),
 				ism: ism.trim(),
 				lavozim: lavozim.trim(),
 				bolim: bolim.trim(),

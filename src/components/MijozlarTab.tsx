@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { translations } from '../i18n.js';
 import { Mijoz, StatusMijoz } from '../types.js';
+import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
@@ -78,7 +79,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 			});
 		} else {
 			onAddMijoz({
-				id: `M${String(mijozlar.length + 1).padStart(3, '0')}`,
+				id: generateNextId('M', mijozlar),
 				kompaniya: kompaniya.trim(),
 				kontakt: kontakt.trim(),
 				telefon: telefon.trim(),

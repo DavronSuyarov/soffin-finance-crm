@@ -8,6 +8,7 @@ import {
 	Mijoz,
 	StatusTranzaksiya,
 } from '../types.js';
+import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
@@ -109,7 +110,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 			});
 		} else {
 			onAddKirim({
-				id: `K${String(kirimlar.length + 1).padStart(3, '0')}`,
+				id: generateNextId('k', kirimlar),
 				mijozId,
 				kompaniya: kompaniyaNomi,
 				summa: Number(summa),

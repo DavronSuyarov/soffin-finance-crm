@@ -8,6 +8,7 @@ import {
 	Hodim,
 	StatusTranzaksiya,
 } from '../types.js';
+import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
@@ -103,7 +104,7 @@ export const ChiqimTab: React.FC<ChiqimTabProps> = ({
 			});
 		} else {
 			onAddChiqim({
-				id: `X${String(chiqimlar.length + 1).padStart(3, '0')}`,
+				id: generateNextId('X', chiqimlar),
 				kategoriya,
 				tavsif: tavsif.trim(),
 				summa: Number(summa),

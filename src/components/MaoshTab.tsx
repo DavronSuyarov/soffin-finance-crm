@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { translations } from '../i18n.js';
 import { Hodim, MaoshYozuvi, StatusMaosh } from '../types.js';
+import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
@@ -98,7 +99,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 			});
 		} else {
 			onAddMaosh({
-				id: `P${String(maoshlar.length + 1).padStart(3, '0')}`,
+				id: generateNextId('MSH', maoshlar),
 				hodimId,
 				ism,
 				davr,
