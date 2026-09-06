@@ -62,14 +62,31 @@ export default function App() {
 	const loadData = async () => {
 		try {
 			setLoading(true);
+			console.log("1. Google Sheets'dan so'rov yuborilmoqda...");
 			const data = await fetchAllSheetData();
-			if (data.Mijozlar) setMijozlar(data.Mijozlar.map(mapRowToMijoz));
-			if (data.Hodimlar) setHodimlar(data.Hodimlar.map(mapRowToHodim));
-			if (data.Kirim) setKirimlar(data.Kirim.map(mapRowToKirim));
-			if (data.Chiqim) setChiqimlar(data.Chiqim.map(mapRowToChiqim));
-			if (data.Maosh) setMaoshlar(data.Maosh.map(mapRowToMaosh));
+			console.log("2. Google Sheets'dan kelgan xom ma'lumot:", data);
+
+			if (data.Mijozlar && data.Mijozlar.length > 0) {
+				const parsed = data.Mijozlar.map(mapRowToMijoz);
+				console.log("3. O'girilgan Mijozlar:", parsed);
+				setMijozlar(parsed);
+			}
+			if (data.Hodimlar && data.Hodimlar.length > 0) {
+				setHodimlar(data.Hodimlar.map(mapRowToHodim));
+			}
+			if (data.Kirim && data.Kirim.length > 0) {
+				const parsedKirim = data.Kirim.map(mapRowToKirim);
+				console.log("4. O'girilgan Kirimlar:", parsedKirim);
+				setKirimlar(parsedKirim);
+			}
+			if (data.Chiqim && data.Chiqim.length > 0) {
+				setChiqimlar(data.Chiqim.map(mapRowToChiqim));
+			}
+			if (data.Maosh && data.Maosh.length > 0) {
+				setMaoshlar(data.Maosh.map(mapRowToMaosh));
+			}
 		} catch (err) {
-			console.error("Google Sheets ma'lumotlarini yuklashda xatolik:", err);
+			console.error('Yuklashda xatolik yuz berdi:', err);
 		} finally {
 			setLoading(false);
 		}
@@ -162,70 +179,106 @@ export default function App() {
 	return (
 		<div className='min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors duration-200'>
 			{/* Navigatsiya */}
-			<nav className='bg-slate-900 dark:bg-slate-950 text-white px-6 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-md border-b border-slate-800'>
-				<div className='flex items-center gap-3'>
-					<span className='text-sky-400 font-extrabold text-lg tracking-wider'>
-						💼 SOFFIN_PAY
-					</span>
-					<span className='text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded'>
-						Finance CRM
-					</span>
-					{loading && (
-						<span className='text-xs text-amber-400 animate-pulse flex items-center gap-1'>
-							🔄 Sinxronlanmoqda...
-						</span>
-					)}
-				</div>
+			<nav className='bg-slate-900 dark:bg-slate-950 text-white px-4 md:px-6 py-3 sticky top-0 z-50 shadow-md border-b border-slate-800'>
+				<div className='max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+					{/* 1. Yuqori qism: Logotip, CRM yozuvi va Sozlamalar (Til + Tun rejimi) */}
+					<div className='flex items-center justify-between w-full sm:w-auto gap-3'>
+						<div className='flex items-center gap-2'>
+							<span className='text-sky-400 font-extrabold text-base md:text-lg tracking-wider shrink-0'>
+								💼 SOFFIN_PAY
+							</span>
+							<span className='hidden xs:inline-block text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded'>
+								CRM
+							</span>
+							{loading && (
+								<span className='text-xs text-amber-400 animate-pulse flex items-center gap-1'>
+									🔄{' '}
+									<span className='hidden sm:inline'>Sinxronlanmoqda...</span>
+								</span>
+							)}
+						</div>
 
-				<div className='flex items-center gap-4'>
-					<div className='flex gap-1.5 overflow-x-auto'>
-						{(
-							[
-								'dashboard',
-								'mijozlar',
-								'hodimlar',
-								'kirim',
-								'chiqim',
-								'maosh',
-							] as const
-						).map(tKey => (
+						{/* Mobile uchun Til va Tun rejimi shu qatorda qulay turadi */}
+						<div className='flex sm:hidden items-center gap-2'>
+							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
+								{(['uz', 'ru', 'en'] as const).map(langKey => (
+									<button
+										key={langKey}
+										onClick={() => setLang(langKey)}
+										className={`px-1.5 py-0.5 rounded uppercase font-semibold transition-all ${
+											lang === langKey
+												? 'bg-sky-600 text-white'
+												: 'text-slate-400'
+										}`}
+									>
+										{langKey}
+									</button>
+								))}
+							</div>
 							<button
-								key={tKey}
-								onClick={() => setTab(tKey)}
-								className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-									tab === tKey
-										? 'bg-sky-700 text-white shadow-xs'
-										: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-								}`}
+								onClick={() => setIsDark(!isDark)}
+								className='w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs'
 							>
-								{tKey === 'maosh' ? `💰 ${t[tKey]}` : t[tKey]}
+								{isDark ? '☀️' : '🌙'}
 							</button>
-						))}
+						</div>
 					</div>
 
-					<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
-						{(['uz', 'ru', 'en'] as const).map(langKey => (
-							<button
-								key={langKey}
-								onClick={() => setLang(langKey)}
-								className={`px-2 py-1 rounded uppercase font-semibold transition-all ${
-									lang === langKey
-										? 'bg-sky-600 text-white shadow-xs'
-										: 'text-slate-400 hover:text-slate-200'
-								}`}
-							>
-								{langKey}
-							</button>
-						))}
-					</div>
+					{/* 2. Pastki/O'ng qism: Menyu tugmalari va Desktop Sozlamalari */}
+					<div className='flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto overflow-hidden'>
+						{/* Telefonlarda bemalol barmoq bilan gorizontal suriladigan menyu */}
+						<div className='flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 w-full sm:w-auto'>
+							{(
+								[
+									'dashboard',
+									'mijozlar',
+									'hodimlar',
+									'kirim',
+									'chiqim',
+									'maosh',
+								] as const
+							).map(tKey => (
+								<button
+									key={tKey}
+									onClick={() => setTab(tKey)}
+									className={`px-2.5 py-1.5 rounded-md text-xs md:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
+										tab === tKey
+											? 'bg-sky-700 text-white shadow-xs'
+											: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+									}`}
+								>
+									{tKey === 'maosh' ? `💰 ${t[tKey]}` : t[tKey]}
+								</button>
+							))}
+						</div>
 
-					<button
-						onClick={() => setIsDark(!isDark)}
-						title={isDark ? "Yorug' rejim" : "Qorong'i rejim"}
-						className='w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-sm transition-colors'
-					>
-						{isDark ? '☀️' : '🌙'}
-					</button>
+						{/* Desktop (Katta ekran) sozlamalari */}
+						<div className='hidden sm:flex items-center gap-3 shrink-0'>
+							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
+								{(['uz', 'ru', 'en'] as const).map(langKey => (
+									<button
+										key={langKey}
+										onClick={() => setLang(langKey)}
+										className={`px-2 py-1 rounded uppercase font-semibold transition-all ${
+											lang === langKey
+												? 'bg-sky-600 text-white'
+												: 'text-slate-400 hover:text-slate-200'
+										}`}
+									>
+										{langKey}
+									</button>
+								))}
+							</div>
+
+							<button
+								onClick={() => setIsDark(!isDark)}
+								title={isDark ? "Yorug' rejim" : "Qorong'i rejim"}
+								className='w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-sm transition-colors'
+							>
+								{isDark ? '☀️' : '🌙'}
+							</button>
+						</div>
+					</div>
 				</div>
 			</nav>
 
