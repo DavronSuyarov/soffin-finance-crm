@@ -1,14 +1,19 @@
 // src/App.tsx
 import { useEffect, useState } from 'react';
-import { ChiqimTab } from './components/ChiqimTab';
-import { DashboardTab } from './components/DashboardTab';
-import { HodimlarTab } from './components/HodimlarTab';
-import { KirimTab } from './components/KirimTab';
-import { MaoshTab } from './components/MaoshTab';
-import { MijozlarTab } from './components/MijozlarTab';
+import {
+	addSheetRow,
+	deleteSheetRow,
+	fetchAllSheetData,
+	updateSheetRow,
+} from './api.js';
 import { calculateDashboardSummary } from './finance.js';
 import { Language, translations } from './i18n.js';
 import {
+	mapChiqimToRow,
+	mapHodimToRow,
+	mapKirimToRow,
+	mapMaoshToRow,
+	mapMijozToRow,
 	mapRowToChiqim,
 	mapRowToHodim,
 	mapRowToKirim,
@@ -17,261 +22,20 @@ import {
 } from './mappers.js';
 import { Chiqim, Hodim, Kirim, MaoshYozuvi, Mijoz } from './types.js';
 
-const initialMijozlar = [
-	[
-		'M001',
-		'Toshmatov LLC',
-		'Jasur Toshmatov',
-		'998901234567',
-		'123456789',
-		'Faol',
-		'VIP mijoz',
-		'01.01.2026',
-	],
-	[
-		'M002',
-		'Karimova Co',
-		'Nilufar Karimova',
-		'998712345678',
-		'987654321',
-		'Faol',
-		'Shartnoma yangilandi',
-		'01.02.2026',
-	],
-	[
-		'M003',
-		'Mirza Group',
-		'Sardor Mirzayev',
-		'998931234567',
-		'456789123',
-		'Kutilmoqda',
-		'Hujjatlar tayyorlanmoqda',
-		'01.03.2026',
-	],
-].map(mapRowToMijoz);
-
-const initialHodimlar = [
-	[
-		'H001',
-		'Nodira Yusupova',
-		'Bosh buxgalter',
-		'Moliya',
-		'10000000',
-		'998901111111',
-		'Faol',
-		'01.01.2026',
-	],
-	[
-		'H002',
-		'Bobur Rahimov',
-		'Buxgalter',
-		'Moliya',
-		'8000000',
-		'998902222222',
-		'Faol',
-		'01.01.2026',
-	],
-	[
-		'H003',
-		'Malika Xasanova',
-		'Menejer',
-		'Sotuv',
-		'6000000',
-		'998903333333',
-		'Faol',
-		'01.02.2026',
-	],
-].map(mapRowToHodim);
-
-const initialKirimlar = [
-	[
-		'K001',
-		'M001',
-		'Toshmatov LLC',
-		'5000000',
-		'UZS',
-		'15.01.2026',
-		'Audit',
-		'Tolangan',
-		'INV-001',
-		'Bank orqali o‘tdi',
-	],
-	[
-		'K002',
-		'M002',
-		'Karimova Co',
-		'3200000',
-		'UZS',
-		'20.02.2026',
-		'Konsultatsiya',
-		'Tolangan',
-		'INV-002',
-		'Shartnoma to‘lovi',
-	],
-	[
-		'K003',
-		'M001',
-		'Toshmatov LLC',
-		'4500000',
-		'UZS',
-		'10.03.2026',
-		'Buxgalteriya hisobi',
-		'Tolangan',
-		'INV-003',
-		'',
-	],
-	[
-		'K004',
-		'M003',
-		'Mirza Group',
-		'2800000',
-		'UZS',
-		'25.04.2026',
-		'Audit',
-		'Kutilmoqda',
-		'INV-004',
-		'Hisob-faktura yuborildi',
-	],
-	[
-		'K005',
-		'M002',
-		'Karimova Co',
-		'6000000',
-		'UZS',
-		'05.05.2026',
-		'Buxgalteriya hisobi',
-		'Tolangan',
-		'INV-005',
-		'',
-	],
-	[
-		'K006',
-		'M001',
-		'Toshmatov LLC',
-		'3500000',
-		'UZS',
-		'18.06.2026',
-		'Konsultatsiya',
-		'Tolangan',
-		'INV-006',
-		'',
-	],
-].map(mapRowToKirim);
-
-const initialChiqimlar = [
-	[
-		'X002',
-		'Ijara',
-		'Ofis ijarasi',
-		'3000000',
-		'UZS',
-		'01.02.2026',
-		'Bobur Rahimov',
-		'Tolangan',
-		'Fevral oyi uchun',
-	],
-	[
-		'X003',
-		'Kommunal',
-		'Elektr, suv',
-		'450000',
-		'UZS',
-		'05.02.2026',
-		'Bobur Rahimov',
-		'Tolangan',
-		'Kvitansiya bor',
-	],
-	[
-		'X005',
-		'Marketing',
-		'Reklama',
-		'1200000',
-		'UZS',
-		'15.03.2026',
-		'Malika Xasanova',
-		'Tolangan',
-		'Target reklama',
-	],
-].map(mapRowToChiqim);
-
-const initialMaoshlar = [
-	[
-		'P001',
-		'H001',
-		'Nodira Yusupova',
-		'2026-01',
-		'10000000',
-		'6000000',
-		'4000000',
-		'Qarzli',
-		'Avans berildi',
-	],
-	[
-		'P002',
-		'H001',
-		'Nodira Yusupova',
-		'2026-02',
-		'10000000',
-		'6000000',
-		'4000000',
-		'Qarzli',
-		'',
-	],
-	[
-		'P003',
-		'H001',
-		'Nodira Yusupova',
-		'2026-03',
-		'10000000',
-		'10000000',
-		'0',
-		'Tolangan',
-		'To‘liq yopildi',
-	],
-	[
-		'P004',
-		'H002',
-		'Bobur Rahimov',
-		'2026-01',
-		'8000000',
-		'8000000',
-		'0',
-		'Tolangan',
-		'',
-	],
-	[
-		'P005',
-		'H002',
-		'Bobur Rahimov',
-		'2026-02',
-		'8000000',
-		'5000000',
-		'3000000',
-		'Qarzli',
-		'Qoldiq keyingi oyga',
-	],
-	[
-		'P006',
-		'H003',
-		'Malika Xasanova',
-		'2026-01',
-		'6000000',
-		'6000000',
-		'0',
-		'Tolangan',
-		'',
-	],
-].map(mapRowToMaosh);
+import { ChiqimTab } from './components/ChiqimTab';
+import { DashboardTab } from './components/DashboardTab';
+import { HodimlarTab } from './components/HodimlarTab';
+import { KirimTab } from './components/KirimTab';
+import { MaoshTab } from './components/MaoshTab';
+import { MijozlarTab } from './components/MijozlarTab';
 
 export default function App() {
-	// Til holati
 	const [lang, setLang] = useState<Language>('uz');
 	const t = translations[lang];
 
-	// Dark / Light rejimi
-	const [isDark, setIsDark] = useState<boolean>(() => {
-		return localStorage.getItem('theme') === 'dark';
-	});
+	const [isDark, setIsDark] = useState<boolean>(
+		() => localStorage.getItem('theme') === 'dark',
+	);
 
 	useEffect(() => {
 		if (isDark) {
@@ -287,11 +51,33 @@ export default function App() {
 		'dashboard' | 'mijozlar' | 'hodimlar' | 'kirim' | 'chiqim' | 'maosh'
 	>('dashboard');
 
-	const [mijozlar, setMijozlar] = useState<Mijoz[]>(initialMijozlar);
-	const [hodimlar, setHodimlar] = useState<Hodim[]>(initialHodimlar);
-	const [kirimlar, setKirimlar] = useState<Kirim[]>(initialKirimlar);
-	const [chiqimlar, setChiqimlar] = useState<Chiqim[]>(initialChiqimlar);
-	const [maoshlar, setMaoshlar] = useState<MaoshYozuvi[]>(initialMaoshlar);
+	const [mijozlar, setMijozlar] = useState<Mijoz[]>([]);
+	const [hodimlar, setHodimlar] = useState<Hodim[]>([]);
+	const [kirimlar, setKirimlar] = useState<Kirim[]>([]);
+	const [chiqimlar, setChiqimlar] = useState<Chiqim[]>([]);
+	const [maoshlar, setMaoshlar] = useState<MaoshYozuvi[]>([]);
+	const [loading, setLoading] = useState<boolean>(true);
+
+	// 1. Google Sheets'dan ma'lumotlarni yuklash
+	const loadData = async () => {
+		try {
+			setLoading(true);
+			const data = await fetchAllSheetData();
+			if (data.Mijozlar) setMijozlar(data.Mijozlar.map(mapRowToMijoz));
+			if (data.Hodimlar) setHodimlar(data.Hodimlar.map(mapRowToHodim));
+			if (data.Kirim) setKirimlar(data.Kirim.map(mapRowToKirim));
+			if (data.Chiqim) setChiqimlar(data.Chiqim.map(mapRowToChiqim));
+			if (data.Maosh) setMaoshlar(data.Maosh.map(mapRowToMaosh));
+		} catch (err) {
+			console.error("Google Sheets ma'lumotlarini yuklashda xatolik:", err);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		loadData();
+	}, []);
 
 	const dashboardSummary = calculateDashboardSummary(
 		mijozlar,
@@ -301,41 +87,77 @@ export default function App() {
 		maoshlar,
 	);
 
-	// Amallar
-	const handleAddMijoz = (yangi: Mijoz) =>
+	// --- CRUD va Google Sheets Sync ---
+
+	// Mijozlar
+	const handleAddMijoz = (yangi: Mijoz) => {
 		setMijozlar(prev => [yangi, ...prev]);
-	const handleUpdateMijoz = (tahrir: Mijoz) =>
+		addSheetRow('Mijozlar', mapMijozToRow(yangi));
+	};
+	const handleUpdateMijoz = (tahrir: Mijoz) => {
 		setMijozlar(prev => prev.map(m => (m.id === tahrir.id ? tahrir : m)));
-	const handleDeleteMijoz = (id: string) =>
+		updateSheetRow('Mijozlar', tahrir.id, mapMijozToRow(tahrir));
+	};
+	const handleDeleteMijoz = (id: string) => {
 		setMijozlar(prev => prev.filter(m => m.id !== id));
+		deleteSheetRow('Mijozlar', id);
+	};
 
-	const handleAddHodim = (yangi: Hodim) =>
+	// Hodimlar
+	const handleAddHodim = (yangi: Hodim) => {
 		setHodimlar(prev => [yangi, ...prev]);
-	const handleUpdateHodim = (tahrir: Hodim) =>
+		addSheetRow('Hodimlar', mapHodimToRow(yangi));
+	};
+	const handleUpdateHodim = (tahrir: Hodim) => {
 		setHodimlar(prev => prev.map(h => (h.id === tahrir.id ? tahrir : h)));
-	const handleDeleteHodim = (id: string) =>
+		updateSheetRow('Hodimlar', tahrir.id, mapHodimToRow(tahrir));
+	};
+	const handleDeleteHodim = (id: string) => {
 		setHodimlar(prev => prev.filter(h => h.id !== id));
+		deleteSheetRow('Hodimlar', id);
+	};
 
-	const handleAddKirim = (yangi: Kirim) =>
+	// Kirim
+	const handleAddKirim = (yangi: Kirim) => {
 		setKirimlar(prev => [yangi, ...prev]);
-	const handleUpdateKirim = (tahrir: Kirim) =>
+		addSheetRow('Kirim', mapKirimToRow(yangi));
+	};
+	const handleUpdateKirim = (tahrir: Kirim) => {
 		setKirimlar(prev => prev.map(k => (k.id === tahrir.id ? tahrir : k)));
-	const handleDeleteKirim = (id: string) =>
+		updateSheetRow('Kirim', tahrir.id, mapKirimToRow(tahrir));
+	};
+	const handleDeleteKirim = (id: string) => {
 		setKirimlar(prev => prev.filter(k => k.id !== id));
+		deleteSheetRow('Kirim', id);
+	};
 
-	const handleAddChiqim = (yangi: Chiqim) =>
+	// Chiqim
+	const handleAddChiqim = (yangi: Chiqim) => {
 		setChiqimlar(prev => [yangi, ...prev]);
-	const handleUpdateChiqim = (tahrir: Chiqim) =>
+		addSheetRow('Chiqim', mapChiqimToRow(yangi));
+	};
+	const handleUpdateChiqim = (tahrir: Chiqim) => {
 		setChiqimlar(prev => prev.map(x => (x.id === tahrir.id ? tahrir : x)));
-	const handleDeleteChiqim = (id: string) =>
+		updateSheetRow('Chiqim', tahrir.id, mapChiqimToRow(tahrir));
+	};
+	const handleDeleteChiqim = (id: string) => {
 		setChiqimlar(prev => prev.filter(x => x.id !== id));
+		deleteSheetRow('Chiqim', id);
+	};
 
-	const handleAddMaosh = (yangi: MaoshYozuvi) =>
+	// Maosh
+	const handleAddMaosh = (yangi: MaoshYozuvi) => {
 		setMaoshlar(prev => [yangi, ...prev]);
-	const handleUpdateMaosh = (tahrir: MaoshYozuvi) =>
+		addSheetRow('Maosh', mapMaoshToRow(yangi));
+	};
+	const handleUpdateMaosh = (tahrir: MaoshYozuvi) => {
 		setMaoshlar(prev => prev.map(m => (m.id === tahrir.id ? tahrir : m)));
-	const handleDeleteMaosh = (id: string) =>
+		updateSheetRow('Maosh', tahrir.id, mapMaoshToRow(tahrir));
+	};
+	const handleDeleteMaosh = (id: string) => {
 		setMaoshlar(prev => prev.filter(m => m.id !== id));
+		deleteSheetRow('Maosh', id);
+	};
 
 	return (
 		<div className='min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors duration-200'>
@@ -348,9 +170,13 @@ export default function App() {
 					<span className='text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded'>
 						Finance CRM
 					</span>
+					{loading && (
+						<span className='text-xs text-amber-400 animate-pulse flex items-center gap-1'>
+							🔄 Sinxronlanmoqda...
+						</span>
+					)}
 				</div>
 
-				{/* Menyu va Boshqaruv tugmalari */}
 				<div className='flex items-center gap-4'>
 					<div className='flex gap-1.5 overflow-x-auto'>
 						{(
@@ -377,7 +203,6 @@ export default function App() {
 						))}
 					</div>
 
-					{/* Til almashtirgich (Language) */}
 					<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
 						{(['uz', 'ru', 'en'] as const).map(langKey => (
 							<button
@@ -394,7 +219,6 @@ export default function App() {
 						))}
 					</div>
 
-					{/* Dark / Light Toggle tugmasi */}
 					<button
 						onClick={() => setIsDark(!isDark)}
 						title={isDark ? "Yorug' rejim" : "Qorong'i rejim"}
@@ -407,56 +231,67 @@ export default function App() {
 
 			{/* Asosiy ekran */}
 			<main className='max-w-7xl mx-auto p-6'>
-				{tab === 'dashboard' && (
-					<DashboardTab summary={dashboardSummary} t={t} />
-				)}
-				{tab === 'mijozlar' && (
-					<MijozlarTab
-						mijozlar={mijozlar}
-						t={t}
-						onAddMijoz={handleAddMijoz}
-						onUpdateMijoz={handleUpdateMijoz}
-						onDeleteMijoz={handleDeleteMijoz}
-					/>
-				)}
-				{tab === 'hodimlar' && (
-					<HodimlarTab
-						hodimlar={hodimlar}
-						t={t}
-						onAddHodim={handleAddHodim}
-						onUpdateHodim={handleUpdateHodim}
-						onDeleteHodim={handleDeleteHodim}
-					/>
-				)}
-				{tab === 'kirim' && (
-					<KirimTab
-						kirimlar={kirimlar}
-						mijozlar={mijozlar}
-						t={t}
-						onAddKirim={handleAddKirim}
-						onUpdateKirim={handleUpdateKirim}
-						onDeleteKirim={handleDeleteKirim}
-					/>
-				)}
-				{tab === 'chiqim' && (
-					<ChiqimTab
-						chiqimlar={chiqimlar}
-						hodimlar={hodimlar}
-						t={t}
-						onAddChiqim={handleAddChiqim}
-						onUpdateChiqim={handleUpdateChiqim}
-						onDeleteChiqim={handleDeleteChiqim}
-					/>
-				)}
-				{tab === 'maosh' && (
-					<MaoshTab
-						maoshlar={maoshlar}
-						hodimlar={hodimlar}
-						t={t}
-						onAddMaosh={handleAddMaosh}
-						onUpdateMaosh={handleUpdateMaosh}
-						onDeleteMaosh={handleDeleteMaosh}
-					/>
+				{loading && mijozlar.length === 0 ? (
+					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
+						<div className='w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin'></div>
+						<div className='text-sm text-slate-500 dark:text-slate-400'>
+							Google Sheets bazasiga ulanmoqda...
+						</div>
+					</div>
+				) : (
+					<>
+						{tab === 'dashboard' && (
+							<DashboardTab summary={dashboardSummary} t={t} />
+						)}
+						{tab === 'mijozlar' && (
+							<MijozlarTab
+								mijozlar={mijozlar}
+								t={t}
+								onAddMijoz={handleAddMijoz}
+								onUpdateMijoz={handleUpdateMijoz}
+								onDeleteMijoz={handleDeleteMijoz}
+							/>
+						)}
+						{tab === 'hodimlar' && (
+							<HodimlarTab
+								hodimlar={hodimlar}
+								t={t}
+								onAddHodim={handleAddHodim}
+								onUpdateHodim={handleUpdateHodim}
+								onDeleteHodim={handleDeleteHodim}
+							/>
+						)}
+						{tab === 'kirim' && (
+							<KirimTab
+								kirimlar={kirimlar}
+								mijozlar={mijozlar}
+								t={t}
+								onAddKirim={handleAddKirim}
+								onUpdateKirim={handleUpdateKirim}
+								onDeleteKirim={handleDeleteKirim}
+							/>
+						)}
+						{tab === 'chiqim' && (
+							<ChiqimTab
+								chiqimlar={chiqimlar}
+								hodimlar={hodimlar}
+								t={t}
+								onAddChiqim={handleAddChiqim}
+								onUpdateChiqim={handleUpdateChiqim}
+								onDeleteChiqim={handleDeleteChiqim}
+							/>
+						)}
+						{tab === 'maosh' && (
+							<MaoshTab
+								maoshlar={maoshlar}
+								hodimlar={hodimlar}
+								t={t}
+								onAddMaosh={handleAddMaosh}
+								onUpdateMaosh={handleUpdateMaosh}
+								onDeleteMaosh={handleDeleteMaosh}
+							/>
+						)}
+					</>
 				)}
 			</main>
 		</div>

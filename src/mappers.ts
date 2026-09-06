@@ -109,3 +109,73 @@ export function mapRowToMaosh(row: string[]): MaoshYozuvi {
 		izoh: parseString(row[8]),
 	};
 }
+// Ob'ektlarni Google Sheets qatoriga (massiv) o'girish
+export function mapMijozToRow(m: Mijoz): any[] {
+	return [
+		m.id,
+		m.kompaniya,
+		m.kontakt,
+		m.telefon,
+		m.inn,
+		m.status,
+		m.izoh || '',
+		m.sana,
+	];
+}
+
+export function mapHodimToRow(h: Hodim): any[] {
+	return [
+		h.id,
+		h.ism,
+		h.lavozim,
+		h.bolim,
+		h.oylikMaosh,
+		h.telefon,
+		h.holat,
+		h.sana,
+		h.izoh || '',
+	];
+}
+
+export function mapKirimToRow(k: Kirim): any[] {
+	return [
+		k.id,
+		k.mijozId,
+		k.kompaniya,
+		k.summa,
+		k.valyuta,
+		k.sana,
+		k.tur,
+		k.holat,
+		k.invoice,
+		k.izoh || '',
+	];
+}
+
+export function mapChiqimToRow(x: Chiqim): any[] {
+	return [
+		x.id,
+		x.kategoriya,
+		x.tavsif,
+		x.summa,
+		x.valyuta,
+		x.sana,
+		x.masulIsm || '',
+		x.holat,
+		x.izoh || '',
+	];
+}
+
+export function mapMaoshToRow(m: MaoshYozuvi): any[] {
+	return [
+		m.id,
+		m.hodimId,
+		m.ism,
+		m.davr,
+		m.belgilangan,
+		m.berilgan,
+		m.qoldiq,
+		m.holat,
+		m.izoh || '',
+	];
+}
