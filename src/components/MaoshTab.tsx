@@ -35,11 +35,13 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const [berilgan, setBerilgan] = useState<number | ''>('');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = maoshlar.filter(
-		m =>
-			m.ism.toLowerCase().includes(search.toLowerCase()) ||
-			m.davr.includes(search),
-	);
+	const filtered = maoshlar
+		.filter(
+			m =>
+				m.ism.toLowerCase().includes(search.toLowerCase()) ||
+				m.davr.includes(search),
+		)
+		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
 	const jamiBelgilangan = filtered.reduce((acc, m) => acc + m.belgilangan, 0);
 	const jamiBerilgan = filtered.reduce((acc, m) => acc + m.berilgan, 0);

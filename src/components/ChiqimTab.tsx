@@ -46,13 +46,15 @@ export const ChiqimTab: React.FC<ChiqimTabProps> = ({
 	const [holat, setHolat] = useState<StatusTranzaksiya>('Tolangan');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = chiqimlar.filter(x => {
-		const matchSearch =
-			x.tavsif.toLowerCase().includes(search.toLowerCase()) ||
-			(x.masulIsm && x.masulIsm.toLowerCase().includes(search.toLowerCase()));
-		const matchKat = !katFilter || x.kategoriya === katFilter;
-		return matchSearch && matchKat;
-	});
+	const filtered = chiqimlar
+		.filter(x => {
+			const matchSearch =
+				x.tavsif.toLowerCase().includes(search.toLowerCase()) ||
+				(x.masulIsm && x.masulIsm.toLowerCase().includes(search.toLowerCase()));
+			const matchKat = !katFilter || x.kategoriya === katFilter;
+			return matchSearch && matchKat;
+		})
+		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
 	const jamiChiqim = filtered.reduce((acc, x) => acc + x.summa, 0);
 

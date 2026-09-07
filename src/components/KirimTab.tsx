@@ -45,14 +45,16 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 	const [invoice, setInvoice] = useState('');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = kirimlar.filter(k => {
-		const matchSearch =
-			k.kompaniya.toLowerCase().includes(search.toLowerCase()) ||
-			k.invoice.toLowerCase().includes(search.toLowerCase()) ||
-			k.tur.toLowerCase().includes(search.toLowerCase());
-		const matchStatus = !statusFilter || k.holat === statusFilter;
-		return matchSearch && matchStatus;
-	});
+	const filtered = kirimlar
+		.filter(k => {
+			const matchSearch =
+				k.kompaniya.toLowerCase().includes(search.toLowerCase()) ||
+				k.invoice.toLowerCase().includes(search.toLowerCase()) ||
+				k.tur.toLowerCase().includes(search.toLowerCase());
+			const matchStatus = !statusFilter || k.holat === statusFilter;
+			return matchSearch && matchStatus;
+		})
+		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
 	const jamiSumma = filtered.reduce((acc, k) => acc + k.summa, 0);
 	const tolanganSumma = filtered

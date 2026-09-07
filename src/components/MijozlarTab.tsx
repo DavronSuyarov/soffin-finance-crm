@@ -32,12 +32,14 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	const [status, setStatus] = useState<StatusMijoz>('Faol');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = mijozlar.filter(
-		m =>
-			m.kompaniya.toLowerCase().includes(search.toLowerCase()) ||
-			m.kontakt.toLowerCase().includes(search.toLowerCase()) ||
-			m.inn.includes(search),
-	);
+	const filtered = mijozlar
+		.filter(
+			m =>
+				m.kompaniya.toLowerCase().includes(search.toLowerCase()) ||
+				m.kontakt.toLowerCase().includes(search.toLowerCase()) ||
+				m.inn.includes(search),
+		)
+		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
 	const handleOpenAdd = () => {
 		setEditingId(null);

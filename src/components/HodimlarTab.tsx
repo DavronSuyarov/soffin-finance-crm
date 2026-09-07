@@ -35,12 +35,14 @@ export const HodimlarTab: React.FC<HodimlarTabProps> = ({
 	const [holat, setHolat] = useState<StatusHodim>('Faol');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = hodimlar.filter(
-		h =>
-			h.ism.toLowerCase().includes(search.toLowerCase()) ||
-			h.lavozim.toLowerCase().includes(search.toLowerCase()) ||
-			h.bolim.toLowerCase().includes(search.toLowerCase()),
-	);
+	const filtered = hodimlar
+		.filter(
+			h =>
+				h.ism.toLowerCase().includes(search.toLowerCase()) ||
+				h.lavozim.toLowerCase().includes(search.toLowerCase()) ||
+				h.telefon.includes(search),
+		)
+		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
 	const jamiMaoshFond = filtered.reduce((acc, h) => acc + h.oylikMaosh, 0);
 
