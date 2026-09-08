@@ -91,25 +91,28 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	// Tepadagi kartochkalar va jadval qatorlari hisob-kitobi
 	const { jamiBelgilangan, jamiBerilgan, jamiQarz, hisoblanganQatorlar } =
 		useMemo(() => {
+			// 1. Har bir xodim va oy bo'yicha berilgan to'lovlar yig'indisi
 			const davrBerilganMap = new Map<string, number>();
 			const davrBelgilanganMap = new Map<string, number>();
 
 			filtered.forEach(m => {
-				const shtat =
-					getHodimOylik(m.hodimId, m.ism) || Number(m.belgilangan) || 0;
+				const shtat = getHodimOylik(m.hodimId, m.ism) || 6000000;
 				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
 
-				const oldBer = davrBerilganMap.get(kalit) || 0;
-				davrBerilganMap.set(kalit, oldBer + (Number(m.berilgan) || 0));
+				davrBerilganMap.set(
+					kalit,
+					(davrBerilganMap.get(kalit) || 0) + (Number(m.berilgan) || 0),
+				);
 
+				// Belgilangan shtat maoshini har bir oy uchun faqat 1 marta olamiz
 				if (!davrBelgilanganMap.has(kalit)) {
 					davrBelgilanganMap.set(kalit, shtat);
 				}
 			});
 
+			// 2. Har bir qator uchun holat va qoldiq
 			const hisoblangan = filtered.map(m => {
-				const shtat =
-					getHodimOylik(m.hodimId, m.ism) || Number(m.belgilangan) || 0;
+				const shtat = getHodimOylik(m.hodimId, m.ism) || 6000000;
 				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
 				const jamiOyBerilgan = davrBerilganMap.get(kalit) || 0;
 				const haqiqiyQoldiq = Math.max(0, shtat - jamiOyBerilgan);
@@ -123,6 +126,13 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				};
 			});
 
+			// 3. Jami qarz har bir oy bo'yicha alohida hisoblanadi (oylar aralashib ketmasligi uchun)
+			let hisoblanganJamiQarz = 0;
+			davrBelgilanganMap.forEach((shtat, kalit) => {
+				const berilgan = davrBerilganMap.get(kalit) || 0;
+				hisoblanganJamiQarz += Math.max(0, shtat - berilgan);
+			});
+
 			const jamiBelg = Array.from(davrBelgilanganMap.values()).reduce(
 				(a, b) => a + b,
 				0,
@@ -131,12 +141,11 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				(acc, m) => acc + (Number(m.berilgan) || 0),
 				0,
 			);
-			const qarz = Math.max(0, jamiBelg - jamiBer);
 
 			return {
 				jamiBelgilangan: jamiBelg,
 				jamiBerilgan: jamiBer,
-				jamiQarz: qarz,
+				jamiQarz: hisoblanganJamiQarz,
 				hisoblanganQatorlar: hisoblangan,
 			};
 		}, [filtered, hodimlar]);
