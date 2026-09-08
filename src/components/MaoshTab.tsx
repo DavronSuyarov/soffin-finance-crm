@@ -1,5 +1,5 @@
 // src/components/MaoshTab.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { translations } from '../i18n.js';
 import { Hodim, MaoshYozuvi, StatusMaosh } from '../types.js';
 import { generateNextId, validateAmount } from '../utils';
@@ -20,9 +20,7 @@ const fmt = (n: number) => n.toLocaleString('uz-UZ');
 const formatOy = (dateStr: string): string => {
 	if (!dateStr) return '—';
 	try {
-		if (/^\d{4}-\d{2}$/.test(dateStr.trim())) {
-			return dateStr.trim();
-		}
+		if (/^\d{4}-\d{2}$/.test(dateStr.trim())) return dateStr.trim();
 		const d = new Date(dateStr);
 		if (isNaN(d.getTime())) return dateStr;
 		const yil = d.getFullYear();
@@ -51,7 +49,6 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const [berilgan, setBerilgan] = useState<number | ''>('');
 	const [izoh, setIzoh] = useState('');
 
-	// 1. Qidiruv va saralash
 	const filtered = useMemo(() => {
 		return maoshlar
 			.filter(
@@ -62,25 +59,46 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 			.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 	}, [maoshlar, search]);
 
-	// 2. Xodim va davr bo'yicha guruhlangan to'lovlar hamda haqiqiy qarz hisobi
+	// Xodimning tanlangan oy uchun qoldiq qarzini hisoblovchi yadro funksiya
+	const getHodimDavrQoldiq = (
+		hId: string,
+		oyStr: string,
+		excludeId?: string | null,
+	) => {
+		const h = hodimlar.find(item => item.id === hId);
+		if (!h) return 0;
+
+		const shtatMaosh = Number(h.oylikMaosh) || 0;
+		const normOy = formatOy(oyStr);
+
+		const oldingiBerilganlar = maoshlar
+			.filter(
+				m =>
+					(m.hodimId === hId || m.ism === h.ism) &&
+					formatOy(m.davr) === normOy &&
+					m.id !== excludeId,
+			)
+			.reduce((sum, m) => sum + (Number(m.berilgan) || 0), 0);
+
+		return Math.max(0, shtatMaosh - oldingiBerilganlar);
+	};
+
+	// Kartochkalar va qatorlardagi qoldiq hisobi
 	const { jamiBelgilangan, jamiBerilgan, jamiQarz, hisoblanganQatorlar } =
 		useMemo(() => {
-			// Har bir xodim va davr uchun jami berilgan summani yig'amiz
 			const davrBerilganMap = new Map<string, number>();
 			const davrBelgilanganMap = new Map<string, number>();
 
 			filtered.forEach(m => {
 				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
-				const oldBerilgan = davrBerilganMap.get(kalit) || 0;
-				davrBerilganMap.set(kalit, oldBerilgan + (Number(m.berilgan) || 0));
+				const oldBer = davrBerilganMap.get(kalit) || 0;
+				davrBerilganMap.set(kalit, oldBer + (Number(m.berilgan) || 0));
 
-				// Belgilanganni faqat bir marta olamiz
 				if (!davrBelgilanganMap.has(kalit)) {
 					davrBelgilanganMap.set(kalit, Number(m.belgilangan) || 0);
 				}
 			});
 
-			// Har bir qator uchun haqiqiy oylik qoldig'ini va holatini hisoblash
 			const hisoblangan = filtered.map(m => {
 				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
 				const jamiOyBerilgan = davrBerilganMap.get(kalit) || 0;
@@ -118,10 +136,13 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const handleOpenAdd = () => {
 		setEditingId(null);
 		const birinchi = hodimlar.length ? hodimlar[0] : null;
-		setHodimId(birinchi ? birinchi.id : '');
-		setBelgilangan(birinchi ? birinchi.oylikMaosh : '');
+		const initialHodimId = birinchi ? birinchi.id : '';
+		const defaultOy = '2026-09';
+
+		setHodimId(initialHodimId);
+		setDavr(defaultOy);
+		setBelgilangan(getHodimDavrQoldiq(initialHodimId, defaultOy));
 		setBerilgan('');
-		setDavr('2026-09');
 		setIzoh('');
 		setIsModalOpen(true);
 	};
@@ -136,31 +157,30 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 		setIsModalOpen(true);
 	};
 
-	const handleHodimChange = (id: string) => {
-		setHodimId(id);
-		const tanlangan = hodimlar.find(h => h.id === id);
-		if (tanlangan) {
-			setBelgilangan(tanlangan.oylikMaosh);
+	const handleHodimChange = (newHodimId: string) => {
+		setHodimId(newHodimId);
+		if (!editingId) {
+			setBelgilangan(getHodimDavrQoldiq(newHodimId, davr));
+		}
+	};
+
+	const handleDavrChange = (newDavr: string) => {
+		setDavr(newDavr);
+		if (!editingId && hodimId) {
+			setBelgilangan(getHodimDavrQoldiq(hodimId, newDavr));
 		}
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-
 		if (!hodimId) return;
 
 		const bSumma = Number(belgilangan) || 0;
 		const gSumma = Number(berilgan) || 0;
 
-		const amountCheck = validateAmount(bSumma);
-		if (!amountCheck.isValid) {
-			alert(amountCheck.error);
-			return;
-		}
-
-		const berilganCheck = validateAmount(gSumma);
-		if (!berilganCheck.isValid) {
-			alert(berilganCheck.error);
+		const checkBerilgan = validateAmount(gSumma);
+		if (!checkBerilgan.isValid) {
+			alert(checkBerilgan.error);
 			return;
 		}
 
@@ -174,7 +194,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				id: editingId,
 				hodimId,
 				ism,
-				davr,
+				davr: formatOy(davr),
 				belgilangan: bSumma,
 				berilgan: gSumma,
 				qoldiq,
@@ -186,7 +206,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				id: generateNextId('MSH', maoshlar),
 				hodimId,
 				ism,
-				davr,
+				davr: formatOy(davr),
 				belgilangan: bSumma,
 				berilgan: gSumma,
 				qoldiq,
@@ -215,7 +235,6 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				</button>
 			</div>
 
-			{/* TEPADAGI UMUMIY STATISTIKA KARTALARI */}
 			<div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
 				<div className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg'>
 					<div className='text-xs text-slate-500 dark:text-slate-400'>
@@ -243,7 +262,6 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				</div>
 			</div>
 
-			{/* JADVAL QISMI */}
 			<div className='bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors'>
 				<div className='overflow-x-auto'>
 					<table className='w-full text-left text-sm text-slate-600 dark:text-slate-300'>
@@ -327,7 +345,6 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				</div>
 			</div>
 
-			{/* MODAL FORMA */}
 			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
@@ -353,14 +370,13 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 					<div>
 						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-							{t.davr} *
+							{t.davr} (Oy) *
 						</label>
 						<input
-							type='text'
+							type='month'
 							required
 							value={davr}
-							onChange={e => setDavr(e.target.value)}
-							placeholder='2026-09'
+							onChange={e => handleDavrChange(e.target.value)}
 							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
 						/>
 					</div>
@@ -368,7 +384,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.belgilangan} *
+								{t.belgilangan} (Qoldiq qarz) *
 							</label>
 							<input
 								type='number'
@@ -379,7 +395,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 								onChange={e =>
 									setBelgilangan(e.target.value ? Number(e.target.value) : '')
 								}
-								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500 font-semibold'
 							/>
 						</div>
 						<div>

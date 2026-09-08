@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
 	addSheetRow,
 	deleteSheetRow,
@@ -22,13 +22,13 @@ import {
 } from './mappers.js';
 import { Chiqim, Hodim, Kirim, MaoshYozuvi, Mijoz } from './types.js';
 
+import { AuthLock } from './components/AuthLock';
 import { ChiqimTab } from './components/ChiqimTab';
 import { DashboardTab } from './components/DashboardTab';
 import { HodimlarTab } from './components/HodimlarTab';
 import { KirimTab } from './components/KirimTab';
 import { MaoshTab } from './components/MaoshTab';
 import { MijozlarTab } from './components/MijozlarTab';
-import { AuthLock } from './components/AuthLock';
 
 export default function App() {
 	const [lang, setLang] = useState<Language>('uz');
@@ -59,26 +59,26 @@ export default function App() {
 	const [maoshlar, setMaoshlar] = useState<MaoshYozuvi[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 
-	// 1. Google Sheets'dan ma'lumotlarni yuklash
+	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+	useEffect(() => {
+		const isAuth = sessionStorage.getItem('soffinp_auth') === 'true';
+		setIsAuthenticated(isAuth);
+	}, []);
+
 	const loadData = async () => {
 		try {
 			setLoading(true);
-			console.log("1. Google Sheets'dan so'rov yuborilmoqda...");
 			const data = await fetchAllSheetData();
-			console.log("2. Google Sheets'dan kelgan xom ma'lumot:", data);
 
 			if (data.Mijozlar && data.Mijozlar.length > 0) {
-				const parsed = data.Mijozlar.map(mapRowToMijoz);
-				console.log("3. O'girilgan Mijozlar:", parsed);
-				setMijozlar(parsed);
+				setMijozlar(data.Mijozlar.map(mapRowToMijoz));
 			}
 			if (data.Hodimlar && data.Hodimlar.length > 0) {
 				setHodimlar(data.Hodimlar.map(mapRowToHodim));
 			}
 			if (data.Kirim && data.Kirim.length > 0) {
-				const parsedKirim = data.Kirim.map(mapRowToKirim);
-				console.log("4. O'girilgan Kirimlar:", parsedKirim);
-				setKirimlar(parsedKirim);
+				setKirimlar(data.Kirim.map(mapRowToKirim));
 			}
 			if (data.Chiqim && data.Chiqim.length > 0) {
 				setChiqimlar(data.Chiqim.map(mapRowToChiqim));
@@ -87,27 +87,30 @@ export default function App() {
 				setMaoshlar(data.Maosh.map(mapRowToMaosh));
 			}
 		} catch (err) {
-			console.error('Yuklashda xatolik yuz berdi:', err);
+			console.error('Yuklashda xatolik:', err);
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	useEffect(() => {
-		loadData();
-	}, []);
+		if (isAuthenticated) {
+			loadData();
+		}
+	}, [isAuthenticated]);
 
-	const dashboardSummary = calculateDashboardSummary(
-		mijozlar,
-		hodimlar,
-		kirimlar,
-		chiqimlar,
-		maoshlar,
-	);
+	// Dashboard uchun hisob-kitob
+	const dashboardSummary = useMemo(() => {
+		return calculateDashboardSummary(
+			mijozlar,
+			hodimlar,
+			kirimlar,
+			chiqimlar,
+			maoshlar,
+		);
+	}, [mijozlar, hodimlar, kirimlar, chiqimlar, maoshlar]);
 
-	// --- CRUD va Google Sheets Sync ---
-
-	// Mijozlar
+	// CRUD
 	const handleAddMijoz = (yangi: Mijoz) => {
 		setMijozlar(prev => [yangi, ...prev]);
 		addSheetRow('Mijozlar', mapMijozToRow(yangi));
@@ -121,7 +124,6 @@ export default function App() {
 		deleteSheetRow('Mijozlar', id);
 	};
 
-	// Hodimlar
 	const handleAddHodim = (yangi: Hodim) => {
 		setHodimlar(prev => [yangi, ...prev]);
 		addSheetRow('Hodimlar', mapHodimToRow(yangi));
@@ -135,7 +137,6 @@ export default function App() {
 		deleteSheetRow('Hodimlar', id);
 	};
 
-	// Kirim
 	const handleAddKirim = (yangi: Kirim) => {
 		setKirimlar(prev => [yangi, ...prev]);
 		addSheetRow('Kirim', mapKirimToRow(yangi));
@@ -149,7 +150,6 @@ export default function App() {
 		deleteSheetRow('Kirim', id);
 	};
 
-	// Chiqim
 	const handleAddChiqim = (yangi: Chiqim) => {
 		setChiqimlar(prev => [yangi, ...prev]);
 		addSheetRow('Chiqim', mapChiqimToRow(yangi));
@@ -163,7 +163,6 @@ export default function App() {
 		deleteSheetRow('Chiqim', id);
 	};
 
-	// Maosh
 	const handleAddMaosh = (yangi: MaoshYozuvi) => {
 		setMaoshlar(prev => [yangi, ...prev]);
 		addSheetRow('Maosh', mapMaoshToRow(yangi));
@@ -176,14 +175,6 @@ export default function App() {
 		setMaoshlar(prev => prev.filter(m => m.id !== id));
 		deleteSheetRow('Maosh', id);
 	};
-	// LOGIN PAROL
-	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-	useEffect(() => {
-		// Brauzer yopilguncha kirish saqlanib turadi
-		const isAuth = sessionStorage.getItem('soffinp_auth') === 'true';
-		setIsAuthenticated(isAuth);
-	}, []);
 
 	if (!isAuthenticated) {
 		return <AuthLock onSuccess={() => setIsAuthenticated(true)} />;
@@ -191,10 +182,8 @@ export default function App() {
 
 	return (
 		<div className='min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors duration-200'>
-			{/* Navigatsiya */}
 			<nav className='bg-slate-900 dark:bg-slate-950 text-white px-4 md:px-6 py-3 sticky top-0 z-50 shadow-md border-b border-slate-800'>
 				<div className='max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-					{/* 1. Yuqori qism: Logotip, CRM yozuvi va Sozlamalar (Til + Tun rejimi) */}
 					<div className='flex items-center justify-between w-full sm:w-auto gap-3'>
 						<div className='flex items-center gap-2'>
 							<span className='text-sky-400 font-extrabold text-base md:text-lg tracking-wider shrink-0'>
@@ -211,7 +200,6 @@ export default function App() {
 							)}
 						</div>
 
-						{/* Mobile uchun Til va Tun rejimi shu qatorda qulay turadi */}
 						<div className='flex sm:hidden items-center gap-2'>
 							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
 								{(['uz', 'ru', 'en'] as const).map(langKey => (
@@ -237,9 +225,7 @@ export default function App() {
 						</div>
 					</div>
 
-					{/* 2. Pastki/O'ng qism: Menyu tugmalari va Desktop Sozlamalari */}
 					<div className='flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto overflow-hidden'>
-						{/* Telefonlarda bemalol barmoq bilan gorizontal suriladigan menyu */}
 						<div className='flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 w-full sm:w-auto'>
 							{(
 								[
@@ -265,7 +251,6 @@ export default function App() {
 							))}
 						</div>
 
-						{/* Desktop (Katta ekran) sozlamalari */}
 						<div className='hidden sm:flex items-center gap-3 shrink-0'>
 							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
 								{(['uz', 'ru', 'en'] as const).map(langKey => (
@@ -295,7 +280,6 @@ export default function App() {
 				</div>
 			</nav>
 
-			{/* Asosiy ekran */}
 			<main className='max-w-7xl mx-auto p-6'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
