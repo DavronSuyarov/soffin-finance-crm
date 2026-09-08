@@ -8,7 +8,7 @@ import {
 	Mijoz,
 	StatusTranzaksiya,
 } from '../types.js';
-import { generateNextId } from '../utils';
+import { generateNextId, validateAmount } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
@@ -92,6 +92,11 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		const amountCheck = validateAmount(summa);
+		if (!amountCheck.isValid) {
+			alert(amountCheck.error);
+			return;
+		}
 		if (!mijozId || !summa || Number(summa) <= 0) return;
 
 		const tanlanganMijoz = mijozlar.find(m => m.id === mijozId);
@@ -298,8 +303,9 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 							</label>
 							<input
 								type='number'
+								min='0'
+								max='100000000000'
 								required
-								min={1}
 								value={summa}
 								onChange={e =>
 									setSumma(e.target.value ? Number(e.target.value) : '')

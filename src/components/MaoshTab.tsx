@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { translations } from '../i18n.js';
 import { Hodim, MaoshYozuvi, StatusMaosh } from '../types.js';
-import { generateNextId } from '../utils';
+import { generateNextId, validateAmount } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
@@ -78,6 +78,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+
 		if (!hodimId) return;
 
 		const tanlanganHodim = hodimlar.find(h => h.id === hodimId);
@@ -86,6 +87,11 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 		const gSumma = Number(berilgan) || 0;
 		const qoldiq = Math.max(0, bSumma - gSumma);
 		const holat: StatusMaosh = qoldiq > 0 ? 'Qarzli' : 'Tolangan';
+		const amountCheck = validateAmount(bSumma);
+		if (!amountCheck.isValid) {
+			alert(amountCheck.error);
+			return;
+		}
 
 		if (editingId) {
 			onUpdateMaosh({
@@ -288,7 +294,8 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 							<input
 								type='number'
 								required
-								min={0}
+								min='0'
+								max='100000000'
 								value={belgilangan}
 								onChange={e =>
 									setBelgilangan(e.target.value ? Number(e.target.value) : '')

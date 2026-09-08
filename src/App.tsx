@@ -28,6 +28,7 @@ import { HodimlarTab } from './components/HodimlarTab';
 import { KirimTab } from './components/KirimTab';
 import { MaoshTab } from './components/MaoshTab';
 import { MijozlarTab } from './components/MijozlarTab';
+import { AuthLock } from './components/AuthLock';
 
 export default function App() {
 	const [lang, setLang] = useState<Language>('uz');
@@ -175,6 +176,18 @@ export default function App() {
 		setMaoshlar(prev => prev.filter(m => m.id !== id));
 		deleteSheetRow('Maosh', id);
 	};
+	// LOGIN PAROL
+	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+	useEffect(() => {
+		// Brauzer yopilguncha kirish saqlanib turadi
+		const isAuth = sessionStorage.getItem('soffinp_auth') === 'true';
+		setIsAuthenticated(isAuth);
+	}, []);
+
+	if (!isAuthenticated) {
+		return <AuthLock onSuccess={() => setIsAuthenticated(true)} />;
+	}
 
 	return (
 		<div className='min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors duration-200'>

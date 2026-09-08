@@ -11,6 +11,7 @@ import {
 import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
+import { validateAmount } from '../utils';
 
 interface ChiqimTabProps {
 	chiqimlar: Chiqim[];
@@ -86,6 +87,11 @@ export const ChiqimTab: React.FC<ChiqimTabProps> = ({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		const amountCheck = validateAmount(summa);
+		if (!amountCheck.isValid) {
+			alert(amountCheck.error);
+			return;
+		}
 		if (!tavsif.trim() || !summa || Number(summa) <= 0) return;
 
 		const tanlanganHodim = hodimlar.find(h => h.id === masulHodimId);
@@ -343,7 +349,8 @@ export const ChiqimTab: React.FC<ChiqimTabProps> = ({
 							<input
 								type='number'
 								required
-								min={1}
+								min='0'
+								max='100000000'
 								value={summa}
 								onChange={e =>
 									setSumma(e.target.value ? Number(e.target.value) : '')
