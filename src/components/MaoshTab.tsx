@@ -1,5 +1,5 @@
 // src/components/MaoshTab.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { translations } from '../i18n.js';
 import { Hodim, MaoshYozuvi, StatusMaosh } from '../types.js';
 import { generateNextId, validateAmount } from '../utils';
@@ -16,6 +16,22 @@ export interface MaoshTabProps {
 }
 
 const fmt = (n: number) => n.toLocaleString('uz-UZ');
+
+const formatOy = (dateStr: string): string => {
+	if (!dateStr) return '—';
+	try {
+		if (/^\d{4}-\d{2}$/.test(dateStr.trim())) {
+			return dateStr.trim();
+		}
+		const d = new Date(dateStr);
+		if (isNaN(d.getTime())) return dateStr;
+		const yil = d.getFullYear();
+		const oy = String(d.getMonth() + 1).padStart(2, '0');
+		return `${yil}-${oy}`;
+	} catch {
+		return dateStr;
+	}
+};
 
 export const MaoshTab: React.FC<MaoshTabProps> = ({
 	maoshlar,
@@ -35,17 +51,69 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const [berilgan, setBerilgan] = useState<number | ''>('');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = maoshlar
-		.filter(
-			m =>
-				m.ism.toLowerCase().includes(search.toLowerCase()) ||
-				m.davr.includes(search),
-		)
-		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+	// 1. Qidiruv va saralash
+	const filtered = useMemo(() => {
+		return maoshlar
+			.filter(
+				m =>
+					m.ism.toLowerCase().includes(search.toLowerCase()) ||
+					m.davr.includes(search),
+			)
+			.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+	}, [maoshlar, search]);
 
-	const jamiBelgilangan = filtered.reduce((acc, m) => acc + m.belgilangan, 0);
-	const jamiBerilgan = filtered.reduce((acc, m) => acc + m.berilgan, 0);
-	const jamiQarz = filtered.reduce((acc, m) => acc + m.qoldiq, 0);
+	// 2. Xodim va davr bo'yicha guruhlangan to'lovlar hamda haqiqiy qarz hisobi
+	const { jamiBelgilangan, jamiBerilgan, jamiQarz, hisoblanganQatorlar } =
+		useMemo(() => {
+			// Har bir xodim va davr uchun jami berilgan summani yig'amiz
+			const davrBerilganMap = new Map<string, number>();
+			const davrBelgilanganMap = new Map<string, number>();
+
+			filtered.forEach(m => {
+				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
+				const oldBerilgan = davrBerilganMap.get(kalit) || 0;
+				davrBerilganMap.set(kalit, oldBerilgan + (Number(m.berilgan) || 0));
+
+				// Belgilanganni faqat bir marta olamiz
+				if (!davrBelgilanganMap.has(kalit)) {
+					davrBelgilanganMap.set(kalit, Number(m.belgilangan) || 0);
+				}
+			});
+
+			// Har bir qator uchun haqiqiy oylik qoldig'ini va holatini hisoblash
+			const hisoblangan = filtered.map(m => {
+				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
+				const jamiOyBerilgan = davrBerilganMap.get(kalit) || 0;
+				const haqiqiyQoldiq = Math.max(
+					0,
+					(Number(m.belgilangan) || 0) - jamiOyBerilgan,
+				);
+				const holat: StatusMaosh = haqiqiyQoldiq > 0 ? 'Qarzli' : 'Tolangan';
+
+				return {
+					...m,
+					haqiqiyQoldiq,
+					haqiqiyHolat: holat,
+				};
+			});
+
+			const jamiBelg = Array.from(davrBelgilanganMap.values()).reduce(
+				(a, b) => a + b,
+				0,
+			);
+			const jamiBer = filtered.reduce(
+				(acc, m) => acc + (Number(m.berilgan) || 0),
+				0,
+			);
+			const qarz = Math.max(0, jamiBelg - jamiBer);
+
+			return {
+				jamiBelgilangan: jamiBelg,
+				jamiBerilgan: jamiBer,
+				jamiQarz: qarz,
+				hisoblanganQatorlar: hisoblangan,
+			};
+		}, [filtered]);
 
 	const handleOpenAdd = () => {
 		setEditingId(null);
@@ -61,7 +129,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const handleOpenEdit = (m: MaoshYozuvi) => {
 		setEditingId(m.id);
 		setHodimId(m.hodimId);
-		setDavr(m.davr);
+		setDavr(formatOy(m.davr));
 		setBelgilangan(m.belgilangan);
 		setBerilgan(m.berilgan);
 		setIzoh(m.izoh || '');
@@ -81,17 +149,25 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 		if (!hodimId) return;
 
-		const tanlanganHodim = hodimlar.find(h => h.id === hodimId);
-		const ism = tanlanganHodim ? tanlanganHodim.ism : '—';
 		const bSumma = Number(belgilangan) || 0;
 		const gSumma = Number(berilgan) || 0;
-		const qoldiq = Math.max(0, bSumma - gSumma);
-		const holat: StatusMaosh = qoldiq > 0 ? 'Qarzli' : 'Tolangan';
+
 		const amountCheck = validateAmount(bSumma);
 		if (!amountCheck.isValid) {
 			alert(amountCheck.error);
 			return;
 		}
+
+		const berilganCheck = validateAmount(gSumma);
+		if (!berilganCheck.isValid) {
+			alert(berilganCheck.error);
+			return;
+		}
+
+		const tanlanganHodim = hodimlar.find(h => h.id === hodimId);
+		const ism = tanlanganHodim ? tanlanganHodim.ism : '—';
+		const qoldiq = Math.max(0, bSumma - gSumma);
+		const holat: StatusMaosh = qoldiq > 0 ? 'Qarzli' : 'Tolangan';
 
 		if (editingId) {
 			onUpdateMaosh({
@@ -139,6 +215,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				</button>
 			</div>
 
+			{/* TEPADAGI UMUMIY STATISTIKA KARTALARI */}
 			<div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
 				<div className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg'>
 					<div className='text-xs text-slate-500 dark:text-slate-400'>
@@ -161,11 +238,12 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 						{t.qoldiq}:
 					</div>
 					<div className='text-base font-bold text-rose-600 dark:text-rose-400'>
-						{fmt(jamiQarz)} UZS ⚠️
+						{fmt(jamiQarz)} UZS {jamiQarz > 0 ? '⚠️' : ''}
 					</div>
 				</div>
 			</div>
 
+			{/* JADVAL QISMI */}
 			<div className='bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors'>
 				<div className='overflow-x-auto'>
 					<table className='w-full text-left text-sm text-slate-600 dark:text-slate-300'>
@@ -183,7 +261,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 							</tr>
 						</thead>
 						<tbody className='divide-y divide-slate-100 dark:divide-slate-800'>
-							{filtered.length === 0 ? (
+							{hisoblanganQatorlar.length === 0 ? (
 								<tr>
 									<td
 										colSpan={9}
@@ -193,7 +271,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 									</td>
 								</tr>
 							) : (
-								filtered.map(m => (
+								hisoblanganQatorlar.map(m => (
 									<tr
 										key={m.id}
 										className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
@@ -205,17 +283,17 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 											{m.ism}
 										</td>
 										<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
-											{m.davr}
+											{formatOy(m.davr)}
 										</td>
 										<td className='px-4 py-3'>{fmt(m.belgilangan)} UZS</td>
 										<td className='px-4 py-3 font-medium text-emerald-600 dark:text-emerald-400'>
 											{fmt(m.berilgan)} UZS
 										</td>
 										<td className='px-4 py-3 font-bold text-rose-600 dark:text-rose-400'>
-											{fmt(m.qoldiq)} UZS
+											{fmt(m.haqiqiyQoldiq)} UZS
 										</td>
 										<td className='px-4 py-3'>
-											<StatusBadge status={m.holat} />
+											<StatusBadge status={m.haqiqiyHolat} />
 										</td>
 										<td
 											className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[180px] truncate'
@@ -249,6 +327,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				</div>
 			</div>
 
+			{/* MODAL FORMA */}
 			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
@@ -295,7 +374,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 								type='number'
 								required
 								min='0'
-								max='100000000'
+								max='100000000000'
 								value={belgilangan}
 								onChange={e =>
 									setBelgilangan(e.target.value ? Number(e.target.value) : '')
@@ -310,7 +389,8 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 							<input
 								type='number'
 								required
-								min={0}
+								min='0'
+								max='100000000000'
 								value={berilgan}
 								onChange={e =>
 									setBerilgan(e.target.value ? Number(e.target.value) : '')

@@ -65,3 +65,14 @@ export function formatCompactNumber(num: number): string {
 	if (num >= 1e6) return (num / 1e6).toFixed(1) + ' mln';
 	return num.toLocaleString('uz-UZ');
 }
+export function formatOy(dateStr: string): string {
+	if (!dateStr) return '—';
+	try {
+		const d = new Date(dateStr);
+		if (isNaN(d.getTime())) return dateStr;
+		// Natija: "2026-07" yoki "Iyul 2026"
+		return d.toLocaleDateString('uz-UZ', { year: 'numeric', month: '2-digit' });
+	} catch {
+		return dateStr;
+	}
+}
