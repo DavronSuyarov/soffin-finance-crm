@@ -12,6 +12,8 @@ import {
 	MaoshYozuvi,
 	Mijoz,
 	SoliqHisoboti,
+	SoliqHisobotiDavriyligi,
+	SoliqRejimi,
 	SoliqTuri,
 	StatusHodim,
 	StatusMaosh,
@@ -64,6 +66,7 @@ export function mapRowToMijoz(row: string[]): Mijoz {
 		tarifSummasi: parseNumber(row[8]) || 0,
 		tolovKuni: parseNumber(row[9]) || 5,
 		masulHodimId: parseString(row[10]),
+		soliqRejimi: (parseString(row[11]) || 'AOS') as SoliqRejimi, // <-- Soliq Rejimi (AOS / Umumbelgilangan / Nodavlat)
 	};
 }
 
@@ -148,6 +151,7 @@ export function mapRowToSoliq(row: string[]): SoliqHisoboti {
 		masulHodimId: parseString(row[8]),
 		masulHodimIsm: parseString(row[9]),
 		izoh: parseString(row[10]),
+		davriyligi: (parseString(row[11]) || 'Oylik') as SoliqHisobotiDavriyligi, // <-- Davriyligi (Oylik / Choraklik / Yillik)
 	};
 }
 
@@ -180,6 +184,7 @@ export function mapMijozToRow(m: Mijoz): any[] {
 		Number(m.tarifSummasi) || 0,
 		Number(m.tolovKuni) || 5,
 		m.masulHodimId || '',
+		m.soliqRejimi || 'AOS', // <-- 11-indeks (12-ustun)
 	];
 }
 
@@ -254,6 +259,7 @@ export function mapSoliqToRow(s: SoliqHisoboti): any[] {
 		s.masulHodimId || '',
 		s.masulHodimIsm || '',
 		s.izoh || '',
+		s.davriyligi || 'Oylik', // <-- 11-indeks (12-ustun)
 	];
 }
 

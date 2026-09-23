@@ -3,9 +3,14 @@ import React, { useMemo, useState } from 'react';
 import { parseOy } from '../finance';
 import { translations } from '../i18n.js';
 import {
+	generatsiyaMijozSoliqlari,
+	getHaqiqiyIshKuniMuddat,
+} from '../taxRules';
+import {
 	Hodim,
 	Mijoz,
 	SoliqHisoboti,
+	SoliqHisobotiDavriyligi,
 	SoliqTuri,
 	StatusSoliqHisoboti,
 } from '../types.js';
@@ -35,6 +40,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('');
 	const [turiFilter, setTuriFilter] = useState('');
+	const [davriylikFilter, setDavriylikFilter] = useState('');
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -42,6 +48,8 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 	const [soliqTuri, setSoliqTuri] = useState<SoliqTuri>(
 		'JSHOD va Ijtimoiy soliq',
 	);
+	const [davriyligi, setDavriyligi] =
+		useState<SoliqHisobotiDavriyligi>('Oylik');
 	const [davr, setDavr] = useState(parseOy(new Date().toISOString()));
 	const [oxirgiMuddat, setOxirgiMuddat] = useState('');
 	const [topshirilganSana, setTopshirilganSana] = useState('');
@@ -73,7 +81,9 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 				(s.davr || '').includes(search);
 			const matchStatus = !statusFilter || s.holat === statusFilter;
 			const matchTuri = !turiFilter || s.soliqTuri === turiFilter;
-			return matchSearch && matchStatus && matchTuri;
+			const matchDavriylik =
+				!davriylikFilter || s.davriyligi === davriylikFilter;
+			return matchSearch && matchStatus && matchTuri && matchDavriylik;
 		})
 		.sort((a, b) => (a.oxirgiMuddat || '').localeCompare(b.oxirgiMuddat || ''));
 
@@ -84,10 +94,10 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 	const kutilayotganlar = filtered.filter(s => s.holat === 'Kutilmoqda').length;
 	const kechikkanlar = filtered.filter(s => s.holat === 'Kechikkan').length;
 
-	// Har oyning 1-sanasi barcha faol mijozlarga soliq vazifalarini avtomatik chiqarish
+	// Har bir mijozning soliq rejimiga mos soliqlarni avtomatik generatsiya qilish
 	const handleGeneratsiyaOylikSoliqlar = () => {
 		const joriyOy = parseOy(new Date().toISOString());
-		let hisob = 0;
+		let jamiQoshildi = 0;
 
 		const faolMijozlar = mijozlar.filter(m => m.status === 'Faol');
 		if (faolMijozlar.length === 0) {
@@ -95,55 +105,32 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 			return;
 		}
 
-		faolMijozlar.forEach((m, idx) => {
-			const biriktirilganHodim = hodimlar.find(h => h.id === m.masulHodimId);
+		faolMijozlar.forEach(mijoz => {
+			const masul = hodimlar.find(h => h.id === mijoz.masulHodimId);
+			const hodimIsm = masul ? masul.ism : '';
 
-			// 1. JSHOD va Ijtimoiy soliq (har oyning 15-sanasi)
-			const mavjudJshod = soliqlar.some(
-				s =>
-					s.mijozId === m.id &&
-					s.soliqTuri === 'JSHOD va Ijtimoiy soliq' &&
-					s.davr === joriyOy,
+			// O'zbekiston soliq kalendariga ko'ra yangi soliq hisobotlarini olish
+			const royxat = generatsiyaMijozSoliqlari(
+				mijoz,
+				joriyOy,
+				soliqlar,
+				hodimIsm,
 			);
-			if (!mavjudJshod) {
-				onAddSoliq({
-					id: generateNextId('S', soliqlar) + `_${idx}_1`,
-					mijozId: m.id,
-					kompaniya: m.kompaniya,
-					soliqTuri: 'JSHOD va Ijtimoiy soliq',
-					davr: joriyOy,
-					oxirgiMuddat: `${joriyOy}-15`,
-					holat: 'Kutilmoqda',
-					masulHodimId: m.masulHodimId || '',
-					masulHodimIsm: biriktirilganHodim ? biriktirilganHodim.ism : '',
-					izoh: `${joriyOy} JSHOD va Ijtimoiy soliq`,
-				});
-				hisob++;
-			}
 
-			// 2. QQS (har oyning 20-sanasi)
-			const mavjudQqs = soliqlar.some(
-				s => s.mijozId === m.id && s.soliqTuri === 'QQS' && s.davr === joriyOy,
-			);
-			if (!mavjudQqs) {
-				onAddSoliq({
-					id: generateNextId('S', soliqlar) + `_${idx}_2`,
-					mijozId: m.id,
-					kompaniya: m.kompaniya,
-					soliqTuri: 'QQS',
-					davr: joriyOy,
-					oxirgiMuddat: `${joriyOy}-20`,
-					holat: 'Kutilmoqda',
-					masulHodimId: m.masulHodimId || '',
-					masulHodimIsm: biriktirilganHodim ? biriktirilganHodim.ism : '',
-					izoh: `${joriyOy} QQS hisoboti`,
-				});
-				hisob++;
-			}
+			royxat.forEach(yangi => {
+				onAddSoliq(yangi);
+				jamiQoshildi++;
+			});
 		});
 
-		if (hisob > 0) {
-			alert(`${hisob} (${joriyOy})`);
+		if (jamiQoshildi > 0) {
+			alert(
+				`${jamiQoshildi} ta soliq hisoboti qonuniy rejimlar asosida shakllantirildi (${joriyOy})!`,
+			);
+		} else {
+			alert(
+				'Barcha faol mijozlarning joriy davr uchun soliqlari shakllantirib bo‘lingan.',
+			);
 		}
 	};
 
@@ -152,9 +139,14 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 		const birinchiMijoz = mijozlar.length ? mijozlar[0] : null;
 		setMijozId(birinchiMijoz ? birinchiMijoz.id : '');
 		setSoliqTuri('JSHOD va Ijtimoiy soliq');
+		setDavriyligi('Oylik');
 		const joriyOy = parseOy(new Date().toISOString());
 		setDavr(joriyOy);
-		setOxirgiMuddat(`${joriyOy}-15`);
+
+		const [yStr, mStr] = joriyOy.split('-');
+		setOxirgiMuddat(
+			getHaqiqiyIshKuniMuddat(parseInt(yStr, 10), parseInt(mStr, 10), 15),
+		);
 		setTopshirilganSana('');
 		setHolat('Kutilmoqda');
 		setMasulHodimId(birinchiMijoz?.masulHodimId || '');
@@ -166,6 +158,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 		setEditingId(s.id);
 		setMijozId(s.mijozId);
 		setSoliqTuri(s.soliqTuri);
+		setDavriyligi(s.davriyligi || 'Oylik');
 		setDavr(s.davr);
 		setOxirgiMuddat(s.oxirgiMuddat);
 		setTopshirilganSana(s.topshirilganSana || '');
@@ -198,6 +191,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 				mijozId,
 				kompaniya: tanlanganMijoz ? tanlanganMijoz.kompaniya : '—',
 				soliqTuri,
+				davriyligi,
 				davr,
 				oxirgiMuddat,
 				topshirilganSana:
@@ -213,6 +207,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 				mijozId,
 				kompaniya: tanlanganMijoz ? tanlanganMijoz.kompaniya : '—',
 				soliqTuri,
+				davriyligi,
 				davr,
 				oxirgiMuddat,
 				topshirilganSana:
@@ -236,7 +231,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 						placeholder={`🔍 ${t.qidirish}`}
 						value={search}
 						onChange={e => setSearch(e.target.value)}
-						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:border-sky-500 w-full sm:w-56'
+						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:border-sky-500 w-full sm:w-52'
 					/>
 					<select
 						value={statusFilter}
@@ -247,6 +242,16 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 						<option value='Topshirildi'>{t.statuslar['Topshirildi']}</option>
 						<option value='Kutilmoqda'>{t.statuslar['Kutilmoqda']}</option>
 						<option value='Kechikkan'>{t.statuslar['Kechikkan']}</option>
+					</select>
+					<select
+						value={davriylikFilter}
+						onChange={e => setDavriylikFilter(e.target.value)}
+						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
+					>
+						<option value=''>Davriylik (Barchasi)</option>
+						<option value='Oylik'>{t.davriyliklar['Oylik']}</option>
+						<option value='Choraklik'>{t.davriyliklar['Choraklik']}</option>
+						<option value='Yillik'>{t.davriyliklar['Yillik']}</option>
 					</select>
 					<select
 						value={turiFilter}
@@ -267,6 +272,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 				<div className='flex items-center gap-2'>
 					<button
 						onClick={handleGeneratsiyaOylikSoliqlar}
+						title="Mijozlar rejimiga ko'ra soliq hisobotlarini avtomatik tuzish"
 						className='px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs flex items-center gap-1.5'
 					>
 						{t.soliqShakllantirish}
@@ -313,6 +319,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 								<th className='px-4 py-3.5'>{t.id}</th>
 								<th className='px-4 py-3.5'>{t.kompaniya}</th>
 								<th className='px-4 py-3.5'>{t.soliqTuri}</th>
+								<th className='px-4 py-3.5'>{t.davriyligi}</th>
 								<th className='px-4 py-3.5'>{t.davr}</th>
 								<th className='px-4 py-3.5'>{t.oxirgiMuddat}</th>
 								<th className='px-4 py-3.5'>{t.topshirilganSana}</th>
@@ -326,7 +333,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 							{filtered.length === 0 ? (
 								<tr>
 									<td
-										colSpan={10}
+										colSpan={11}
 										className='text-center py-8 text-slate-400 dark:text-slate-500'
 									>
 										—
@@ -355,6 +362,19 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 												{t.soliqTurlari[
 													s.soliqTuri as keyof typeof t.soliqTurlari
 												] || s.soliqTuri}
+											</td>
+											<td className='px-4 py-3'>
+												<span
+													className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+														s.davriyligi === 'Yillik'
+															? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'
+															: s.davriyligi === 'Choraklik'
+																? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300'
+																: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300'
+													}`}
+												>
+													{s.davriyligi || 'Oylik'}
+												</span>
 											</td>
 											<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
 												{s.davr}
@@ -443,7 +463,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 						>
 							{mijozlar.map(m => (
 								<option key={m.id} value={m.id}>
-									{m.kompaniya} ({m.inn ? `INN: ${m.inn}` : m.status})
+									{m.kompaniya} ({m.soliqRejimi || 'AOS'})
 								</option>
 							))}
 						</select>
@@ -459,11 +479,16 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 								onChange={e => {
 									const turi = e.target.value as SoliqTuri;
 									setSoliqTuri(turi);
-									if (turi === 'QQS') {
-										setOxirgiMuddat(`${davr}-20`);
-									} else {
-										setOxirgiMuddat(`${davr}-15`);
-									}
+									const [yStr, mStr] = davr.split('-');
+									const kun =
+										turi === 'QQS' || turi.includes('Foyda') ? 20 : 15;
+									setOxirgiMuddat(
+										getHaqiqiyIshKuniMuddat(
+											parseInt(yStr, 10),
+											parseInt(mStr, 10),
+											kun,
+										),
+									);
 								}}
 								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
 							>
@@ -476,6 +501,25 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 						</div>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								{t.davriyligi} *
+							</label>
+							<select
+								value={davriyligi}
+								onChange={e =>
+									setDavriyligi(e.target.value as SoliqHisobotiDavriyligi)
+								}
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
+							>
+								<option value='Oylik'>{t.davriyliklar['Oylik']}</option>
+								<option value='Choraklik'>{t.davriyliklar['Choraklik']}</option>
+								<option value='Yillik'>{t.davriyliklar['Yillik']}</option>
+							</select>
+						</div>
+					</div>
+
+					<div className='grid grid-cols-2 gap-3'>
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 								{t.davr} *
 							</label>
 							<input
@@ -485,14 +529,19 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 								onChange={e => {
 									const d = e.target.value;
 									setDavr(d);
-									setOxirgiMuddat(soliqTuri === 'QQS' ? `${d}-20` : `${d}-15`);
+									const [yStr, mStr] = d.split('-');
+									const kun = soliqTuri === 'QQS' ? 20 : 15;
+									setOxirgiMuddat(
+										getHaqiqiyIshKuniMuddat(
+											parseInt(yStr, 10),
+											parseInt(mStr, 10),
+											kun,
+										),
+									);
 								}}
 								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
 							/>
 						</div>
-					</div>
-
-					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 								{t.oxirgiMuddat} *
@@ -505,6 +554,9 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
 							/>
 						</div>
+					</div>
+
+					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 								{t.holat}
@@ -527,9 +579,6 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 								<option value='Kechikkan'>{t.statuslar['Kechikkan']}</option>
 							</select>
 						</div>
-					</div>
-
-					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 								{t.topshirilganSana}
@@ -541,23 +590,24 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
 							/>
 						</div>
-						<div>
-							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.masulBuxgalter}
-							</label>
-							<select
-								value={masulHodimId}
-								onChange={e => setMasulHodimId(e.target.value)}
-								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
-							>
-								<option value=''>— {t.masulBuxgalter} —</option>
-								{hodimlar.map(h => (
-									<option key={h.id} value={h.id}>
-										{h.ism} ({h.lavozim})
-									</option>
-								))}
-							</select>
-						</div>
+					</div>
+
+					<div>
+						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+							{t.masulBuxgalter}
+						</label>
+						<select
+							value={masulHodimId}
+							onChange={e => setMasulHodimId(e.target.value)}
+							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
+						>
+							<option value=''>— {t.masulBuxgalter} —</option>
+							{hodimlar.map(h => (
+								<option key={h.id} value={h.id}>
+									{h.ism} ({h.lavozim})
+								</option>
+							))}
+						</select>
 					</div>
 
 					<div>

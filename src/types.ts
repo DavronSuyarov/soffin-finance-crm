@@ -26,12 +26,20 @@ export type KirimXizmatTuri =
 	| 'Qayta tiklash'
 	| 'Boshqa';
 
-// Soliq monitoringi uchun tiplar
+// O'zbekiston Soliq Kodeksi bo'yicha korxona soliq rejimlari
+export type SoliqRejimi = 'AOS' | 'Umumbelgilangan' | 'Nodavlat/NHT';
+
+// Hisobot davriyligi
+export type SoliqHisobotiDavriyligi = 'Oylik' | 'Choraklik' | 'Yillik';
+
+// Soliq monitoringi hisobot turlari
 export type SoliqTuri =
 	| 'JSHOD va Ijtimoiy soliq'
+	| 'Aylanmadan olinadigan soliq (AOS)'
 	| 'QQS'
-	| 'Aylanmadan olinadigan soliq'
-	| 'Foyda solig‘i'
+	| 'Foyda solig‘i (Choraklik)'
+	| 'Yillik Foyda solig‘i'
+	| 'Yillik Moliyaviy hisobot (1-2 shakl)'
 	| 'Mol-mulk va Yer solig‘i'
 	| 'Suv resurslaridan foydalanish solig‘i'
 	| 'Statistika hisoboti'
@@ -55,6 +63,7 @@ export interface Mijoz {
 	tolovKuni: number; // Har oyning qaysi sanasigacha to'lanishi kerak (1-31)
 	status: StatusMijoz;
 	masulHodimId?: string; // Ushbu mijozga mas'ul buxgalter IDsi
+	soliqRejimi?: SoliqRejimi; // <-- Yangi: Mijozning soliq rejimi (AOS / Umumbelgilangan / Nodavlat)
 	izoh?: string;
 	sana: string;
 }
@@ -120,8 +129,9 @@ export interface SoliqHisoboti {
 	mijozId: string;
 	kompaniya: string;
 	soliqTuri: SoliqTuri;
-	davr: string; // "YYYY-MM" yoki "2026-Q1"
-	oxirgiMuddat: string; // "YYYY-MM-DD" (Masalan: har oyning 15 yoki 20-sanasi)
+	davriyligi?: SoliqHisobotiDavriyligi; // Oylik / Choraklik / Yillik
+	davr: string; // "YYYY-MM", "YYYY-Q1" yoki "YYYY-Yillik"
+	oxirgiMuddat: string; // "YYYY-MM-DD"
 	topshirilganSana?: string; // "YYYY-MM-DD"
 	holat: StatusSoliqHisoboti;
 	masulHodimId?: string;
@@ -135,7 +145,7 @@ export interface DavomatYozuvi {
 	sana: string; // "YYYY-MM-DD"
 	kelganVaqt?: string; // "09:35"
 	holat: DavomatHolati;
-	kechikishDaqiqa: number; // Masalan: 09:30 dan o'tgan daqiqalar soni
+	kechikishDaqiqa: number;
 	izoh?: string;
 }
 
@@ -143,23 +153,23 @@ export interface HodimKPIHisob {
 	hodimId: string;
 	ism: string;
 	davr: string; // "YYYY-MM"
-	bazaviyMaosh: number; // Umumiy maosh
+	bazaviyMaosh: number;
 	asosiyQism: number; // 85% kafolatlangan qism
 	bonusFond: number; // 15% maksimal bonus fondi
 
 	// Intizom ko'rsatkichlari
-	kechikishlarSoni: number; // >09:30
+	kechikishlarSoni: number;
 	sababsizKelmadiKun: number;
-	intizomChegirmaFoiz: number; // Bonusdan chegiriladigan foiz (0 - 100%)
+	intizomChegirmaFoiz: number;
 
 	// Soliq hisobotlari ko'rsatkichlari
 	jamiHisobotlar: number;
 	kechiktirilganHisobotlar: number;
-	soliqIntizomiChegirmaFoiz: number; // Bonusdan chegiriladigan foiz
+	soliqIntizomiChegirmaFoiz: number;
 
 	// Yakuniy natija
-	hisoblanganBonus: number; // Qolgan bonus summasi
-	jamiHisoblanganMaosh: number; // Asosiy (85%) + Hisoblangan bonus
+	hisoblanganBonus: number;
+	jamiHisoblanganMaosh: number;
 }
 
 // ============================================================
@@ -202,11 +212,10 @@ export interface DashboardXulosa {
 	sofFoyda: number;
 	kutilayotganKirim: number;
 	xodimlardanQarz: number;
-	mijozlarQarzi: number; // Jami mijozlarning firmadan qarzdorligi (debitorlik)
+	mijozlarQarzi: number;
 	oylikTahlil: OylikKorsatkich[];
 	chiqimKategoriyalari: ChiqimStatistika[];
 
-	// Soliq va KPI bo'yicha dashboard qisqacha ko'rsatkichlari
 	kutilayotganSoliqlar?: number;
 	kechikkanSoliqlar?: number;
 }

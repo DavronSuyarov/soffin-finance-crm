@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { hisoblaMijozlarQarzi } from '../finance';
 import { translations } from '../i18n.js';
-import { Kirim, Mijoz, StatusMijoz } from '../types.js';
+import { Kirim, Mijoz, SoliqRejimi, StatusMijoz } from '../types.js';
 import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
@@ -36,6 +36,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	const [inn, setInn] = useState('');
 	const [tarifSummasi, setTarifSummasi] = useState<number | ''>('');
 	const [tolovKuni, setTolovKuni] = useState<number>(5);
+	const [soliqRejimi, setSoliqRejimi] = useState<SoliqRejimi>('AOS');
 	const [status, setStatus] = useState<StatusMijoz>('Faol');
 	const [izoh, setIzoh] = useState('');
 
@@ -50,6 +51,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 			m =>
 				(m.kompaniya || '').toLowerCase().includes(search.toLowerCase()) ||
 				(m.kontakt || '').toLowerCase().includes(search.toLowerCase()) ||
+				(m.soliqRejimi || '').toLowerCase().includes(search.toLowerCase()) ||
 				(m.inn || '').includes(search),
 		)
 		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
@@ -62,6 +64,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		setInn('');
 		setTarifSummasi('');
 		setTolovKuni(5);
+		setSoliqRejimi('AOS');
 		setStatus('Faol');
 		setIzoh('');
 		setIsModalOpen(true);
@@ -75,6 +78,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		setInn(m.inn);
 		setTarifSummasi(m.tarifSummasi || '');
 		setTolovKuni(m.tolovKuni || 5);
+		setSoliqRejimi(m.soliqRejimi || 'AOS');
 		setStatus(m.status);
 		setIzoh(m.izoh || '');
 		setIsModalOpen(true);
@@ -97,6 +101,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				inn: inn.trim(),
 				tarifSummasi: tSumma,
 				tolovKuni: tKuni,
+				soliqRejimi,
 				status,
 				izoh: izoh.trim(),
 				sana: mavjud ? mavjud.sana : new Date().toLocaleDateString('uz-UZ'),
@@ -110,12 +115,35 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				inn: inn.trim(),
 				tarifSummasi: tSumma,
 				tolovKuni: tKuni,
+				soliqRejimi,
 				status,
 				izoh: izoh.trim(),
 				sana: new Date().toLocaleDateString('uz-UZ'),
 			});
 		}
 		setIsModalOpen(false);
+	};
+
+	// Soliq rejimi nishoni (badge) uchun ranglar
+	const renderRejimBadge = (rejim?: SoliqRejimi) => {
+		const val = rejim || 'AOS';
+		let cls =
+			'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
+		if (val === 'Umumbelgilangan') {
+			cls =
+				'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
+		} else if (val === 'Nodavlat/NHT') {
+			cls =
+				'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+		}
+
+		return (
+			<span
+				className={`px-2 py-0.5 rounded text-xs font-semibold border ${cls}`}
+			>
+				{val}
+			</span>
+		);
 	};
 
 	return (
@@ -147,12 +175,13 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							<tr>
 								<th className='px-4 py-3.5'>{t.id}</th>
 								<th className='px-4 py-3.5'>{t.kompaniya}</th>
+								<th className='px-4 py-3.5'>{t.soliqRejimi}</th>
 								<th className='px-4 py-3.5'>{t.masulShaxs}</th>
 								<th className='px-4 py-3.5'>{t.telefon}</th>
 								<th className='px-4 py-3.5'>{t.inn}</th>
-								<th className='px-4 py-3.5'>{t.oylikTarif}</th>
-								<th className='px-4 py-3.5'>{t.tolovMuddati}</th>
-								<th className='px-4 py-3.5'>{t.debitorlikQarzi}</th>
+								<th className='px-4 py-3.5'>{t.tarifSummasi}</th>
+								<th className='px-4 py-3.5'>{t.tolovKuni}</th>
+								<th className='px-4 py-3.5'>{t.qoldiq}</th>
 								<th className='px-4 py-3.5'>{t.holat}</th>
 								<th className='px-4 py-3.5'>{t.izoh}</th>
 								<th className='px-4 py-3.5 text-right'>{t.amallar}</th>
@@ -162,7 +191,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							{filtered.length === 0 ? (
 								<tr>
 									<td
-										colSpan={11}
+										colSpan={12}
 										className='text-center py-8 text-slate-400 dark:text-slate-500'
 									>
 										—
@@ -171,9 +200,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							) : (
 								filtered.map(m => {
 									const qarz = debitorlikMap.get(m.id) || 0;
-									const sanaMatni = (
-										t.harOyningSanasi || 'Har oyning {kun}-sanasi'
-									).replace('{kun}', String(m.tolovKuni || 5));
+									const sanaMatni = `Har oyning ${m.tolovKuni || 5}-sanasi`;
 
 									return (
 										<tr
@@ -185,6 +212,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 											</td>
 											<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
 												{m.kompaniya}
+											</td>
+											<td className='px-4 py-3'>
+												{renderRejimBadge(m.soliqRejimi)}
 											</td>
 											<td className='px-4 py-3'>{m.kontakt || '—'}</td>
 											<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
@@ -206,7 +236,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 													</span>
 												) : (
 													<span className='text-emerald-600 dark:text-emerald-400 text-xs font-semibold'>
-														{t.qarziYoq} ✓
+														Qarzi yo‘q ✓
 													</span>
 												)}
 											</td>
@@ -265,10 +295,31 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
 						/>
 					</div>
+
+					{/* Soliq Rejimi */}
+					<div>
+						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+							{t.soliqRejimi} *
+						</label>
+						<select
+							value={soliqRejimi}
+							onChange={e => setSoliqRejimi(e.target.value as SoliqRejimi)}
+							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500 font-medium'
+						>
+							<option value='AOS'>{t.soliqRejimlari['AOS']}</option>
+							<option value='Umumbelgilangan'>
+								{t.soliqRejimlari['Umumbelgilangan']}
+							</option>
+							<option value='Nodavlat/NHT'>
+								{t.soliqRejimlari['Nodavlat/NHT']}
+							</option>
+						</select>
+					</div>
+
 					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.masulShaxs}
+								{t.kontakt}
 							</label>
 							<input
 								type='text'
@@ -320,7 +371,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.oylikTarif} *
+								{t.tarifSummasi} *
 							</label>
 							<input
 								type='number'
@@ -336,7 +387,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 						</div>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.tolovMuddati} *
+								{t.tolovKuni} *
 							</label>
 							<input
 								type='number'
