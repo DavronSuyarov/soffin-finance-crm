@@ -93,7 +93,6 @@ export default function App() {
 		try {
 			setLoading(true);
 			const res = await fetchAllSheetData();
-			// TypeScript xatosini yo'qotish uchun unknown orqali xavfsiz typecast qilamiz
 			const data =
 				(res as unknown as Record<string, string[][] | undefined>) || {};
 
@@ -131,7 +130,7 @@ export default function App() {
 		}
 	}, [isAuthenticated]);
 
-	// Dashboard umumiy statistikasi (Soliqlar monitoringi bilan birga)
+	// Dashboard umumiy statistikasi
 	const dashboardSummary = useMemo(() => {
 		return calculateDashboardSummary(
 			mijozlar,
@@ -242,53 +241,29 @@ export default function App() {
 	}
 
 	return (
-		<div className='min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors duration-200'>
-			{/* Navigatsiya */}
-			<nav className='bg-slate-900 dark:bg-slate-950 text-white px-4 md:px-6 py-3 sticky top-0 z-50 shadow-md border-b border-slate-800'>
-				<div className='max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-					<div className='flex items-center justify-between w-full sm:w-auto gap-3'>
-						<div className='flex items-center gap-2'>
-							<span className='text-sky-400 font-extrabold text-base md:text-lg tracking-wider shrink-0'>
+		<div className='min-h-screen w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200'>
+			{/* Responsiv Navigatsiya */}
+			<nav className='bg-slate-900 dark:bg-slate-950 text-white w-full sticky top-0 z-50 shadow-md border-b border-slate-800'>
+				<div className='max-w-7xl mx-auto px-3 sm:px-6 lg:px-8'>
+					<div className='flex items-center justify-between h-14 md:h-16 gap-3'>
+						{/* Logo va status */}
+						<div className='flex items-center gap-2 shrink-0'>
+							<span className='text-sky-400 font-extrabold text-sm sm:text-base md:text-lg tracking-wider'>
 								💼 SOFFIN_PAY
 							</span>
-							<span className='hidden xs:inline-block text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded'>
+							<span className='hidden sm:inline-block text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded'>
 								CRM
 							</span>
 							{loading && (
-								<span className='text-xs text-amber-400 animate-pulse flex items-center gap-1'>
+								<span className='text-xs text-amber-400 animate-pulse flex items-center gap-1 ml-1'>
 									🔄{' '}
-									<span className='hidden sm:inline'>Sinxronlanmoqda...</span>
+									<span className='hidden md:inline'>Sinxronlanmoqda...</span>
 								</span>
 							)}
 						</div>
 
-						<div className='flex sm:hidden items-center gap-2'>
-							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
-								{(['uz', 'ru', 'en'] as const).map(langKey => (
-									<button
-										key={langKey}
-										onClick={() => setLang(langKey)}
-										className={`px-1.5 py-0.5 rounded uppercase font-semibold transition-all ${
-											lang === langKey
-												? 'bg-sky-600 text-white'
-												: 'text-slate-400'
-										}`}
-									>
-										{langKey}
-									</button>
-								))}
-							</div>
-							<button
-								onClick={() => setIsDark(!isDark)}
-								className='w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs'
-							>
-								{isDark ? '☀️' : '🌙'}
-							</button>
-						</div>
-					</div>
-
-					<div className='flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto overflow-hidden'>
-						<div className='flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 w-full sm:w-auto'>
+						{/* O'rtadagi tab tugmalari (Gorizontal silliq aylanadi) */}
+						<div className='flex items-center gap-1 overflow-x-auto no-scrollbar py-1 flex-1 max-w-2xl justify-start sm:justify-center'>
 							{(
 								[
 									'dashboard',
@@ -304,10 +279,10 @@ export default function App() {
 								<button
 									key={tKey}
 									onClick={() => setTab(tKey)}
-									className={`px-2.5 py-1.5 rounded-md text-xs md:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
+									className={`px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
 										tab === tKey
-											? 'bg-sky-700 text-white shadow-xs'
-											: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+											? 'bg-sky-600 text-white shadow-xs'
+											: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
 									}`}
 								>
 									{tKey === 'soliqlar'
@@ -321,13 +296,14 @@ export default function App() {
 							))}
 						</div>
 
-						<div className='hidden sm:flex items-center gap-3 shrink-0'>
+						{/* Til va Qorong'i/Yorug' rejim tanlagichlari */}
+						<div className='flex items-center gap-2 shrink-0'>
 							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
 								{(['uz', 'ru', 'en'] as const).map(langKey => (
 									<button
 										key={langKey}
 										onClick={() => setLang(langKey)}
-										className={`px-2 py-1 rounded uppercase font-semibold transition-all ${
+										className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded uppercase font-semibold transition-all ${
 											lang === langKey
 												? 'bg-sky-600 text-white'
 												: 'text-slate-400 hover:text-slate-200'
@@ -350,8 +326,8 @@ export default function App() {
 				</div>
 			</nav>
 
-			{/* Asosiy Ekran */}
-			<main className='max-w-7xl mx-auto p-6'>
+			{/* Asosiy Ekran Konteyneri */}
+			<main className='flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-hidden'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
 						<div className='w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin'></div>
@@ -360,7 +336,7 @@ export default function App() {
 						</div>
 					</div>
 				) : (
-					<>
+					<div className='w-full'>
 						{tab === 'dashboard' && (
 							<DashboardTab summary={dashboardSummary} t={t} />
 						)}
@@ -435,7 +411,7 @@ export default function App() {
 								onDeleteMaosh={handleDeleteMaosh}
 							/>
 						)}
-					</>
+					</div>
 				)}
 			</main>
 		</div>
