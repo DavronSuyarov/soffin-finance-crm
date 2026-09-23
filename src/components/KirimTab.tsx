@@ -1,5 +1,5 @@
 // src/components/KirimTab.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { parseOy } from '../finance';
 import { translations } from '../i18n.js';
 import {
@@ -34,6 +34,8 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 }) => {
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('');
+	const [oyFilter, setOyFilter] = useState(''); // Oylar bo'yicha maxsus filtr
+	const [surunkaliQarzdorFilter, setSurunkaliQarzdorFilter] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -47,15 +49,54 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 	const [invoice, setInvoice] = useState('');
 	const [izoh, setIzoh] = useState('');
 
+	// Kirimlarda mavjud bo'lgan barcha noyob oylarni ajratib olish (Dropdown uchun)
+	const mavjudOylar = useMemo(() => {
+		const oylarSet = new Set<string>();
+		kirimlar.forEach(k => {
+			const oy = parseOy(k.davr || k.sana);
+			if (oy) oylarSet.add(oy);
+		});
+		return Array.from(oylarSet).sort().reverse();
+	}, [kirimlar]);
+
+	// Har bir mijoz bo'yicha to'lanmagan (Kutilmoqda) oylar sonini aniqlash
+	const mijozQarzdorOylarSoni = useMemo(() => {
+		const counts = new Map<string, number>();
+		kirimlar.forEach(k => {
+			if (k.holat === 'Kutilmoqda') {
+				const id = k.mijozId || k.kompaniya;
+				counts.set(id, (counts.get(id) || 0) + 1);
+			}
+		});
+		return counts;
+	}, [kirimlar]);
+
+	// 4 va undan ko'p oy to'lov qilmagan mijozlar soni
+	const xavfliMijozlarSoni = useMemo(() => {
+		let soni = 0;
+		mijozQarzdorOylarSoni.forEach(oylar => {
+			if (oylar >= 4) soni++;
+		});
+		return soni;
+	}, [mijozQarzdorOylarSoni]);
+
 	const filtered = kirimlar
 		.filter(k => {
+			const kOy = parseOy(k.davr || k.sana);
 			const matchSearch =
 				(k.kompaniya || '').toLowerCase().includes(search.toLowerCase()) ||
 				(k.invoice || '').toLowerCase().includes(search.toLowerCase()) ||
 				(k.tur || '').toLowerCase().includes(search.toLowerCase()) ||
 				(k.davr || '').includes(search);
 			const matchStatus = !statusFilter || k.holat === statusFilter;
-			return matchSearch && matchStatus;
+			const matchOy = !oyFilter || kOy === oyFilter;
+
+			const qarzOylar =
+				mijozQarzdorOylarSoni.get(k.mijozId || k.kompaniya) || 0;
+			const matchSurunkali =
+				!surunkaliQarzdorFilter || (qarzOylar >= 4 && k.holat === 'Kutilmoqda');
+
+			return matchSearch && matchStatus && matchOy && matchSurunkali;
 		})
 		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
@@ -108,7 +149,13 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 		});
 
 		if (hisob > 0) {
-			alert(`${hisob} (${joriyOy})`);
+			alert(
+				`${hisob} ta mijoz uchun ${joriyOy} oylik to‘lov invoyslari shakllantirildi!`,
+			);
+		} else {
+			alert(
+				`${joriyOy} oyi uchun barcha mijozlarning invoyslari allaqachon mavjud.`,
+			);
 		}
 	};
 
@@ -212,13 +259,30 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 			{/* 1. FILTRLASH VA AMALLAR PANELI */}
 			<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors'>
 				<div className='flex flex-wrap items-center gap-3 flex-1'>
+					{/* Qidiruv */}
 					<input
 						type='text'
 						placeholder={`🔍 ${t.qidirish}`}
 						value={search}
 						onChange={e => setSearch(e.target.value)}
-						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:border-sky-500 w-full sm:w-64'
+						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:border-sky-500 w-full sm:w-56'
 					/>
+
+					{/* OYLAR BO'YICHA MAXSUS FILTR */}
+					<select
+						value={oyFilter}
+						onChange={e => setOyFilter(e.target.value)}
+						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500 font-medium'
+					>
+						<option value=''>📅 Barcha oylar</option>
+						{mavjudOylar.map(oy => (
+							<option key={oy} value={oy}>
+								{oy}
+							</option>
+						))}
+					</select>
+
+					{/* Status filtri */}
 					<select
 						value={statusFilter}
 						onChange={e => setStatusFilter(e.target.value)}
@@ -234,6 +298,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 				<div className='flex items-center gap-2'>
 					<button
 						onClick={handleGeneratsiyaOylikAbonent}
+						title="Faol mijozlar tarifiga ko'ra joriy oy invoyslarini shakllantirish"
 						className='px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs flex items-center gap-1.5'
 					>
 						{t.shakllantirishAbonent}
@@ -248,7 +313,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 			</div>
 
 			{/* Xulosa chiplari */}
-			<div className='flex flex-wrap gap-2.5'>
+			<div className='flex flex-wrap gap-2.5 items-center'>
 				<div className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300'>
 					{t.summa}:{' '}
 					<span className='font-bold text-slate-900 dark:text-slate-100'>
@@ -263,6 +328,25 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 					{t.kutilmoqda} ({t.debitorlik}):{' '}
 					<span className='font-bold'>{fmt(kutilayotganSumma)} UZS ⏳</span>
 				</div>
+
+				{/* 4+ OY TO'LAMAGANLAR UCHUN MAXSUS OGOHLANTIRUVCHI CHIP */}
+				{xavfliMijozlarSoni > 0 && (
+					<button
+						onClick={() => setSurunkaliQarzdorFilter(!surunkaliQarzdorFilter)}
+						className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-1.5 cursor-pointer ${
+							surunkaliQarzdorFilter
+								? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+								: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 animate-pulse'
+						}`}
+						title="4 yoki undan ko'p oy to'lov qilmagan mijozlarni filtrlash"
+					>
+						<span>⚠️ 4+ oy to‘lamaganlar:</span>
+						<span className='font-bold underline'>
+							{xavfliMijozlarSoni} ta mijoz
+						</span>
+						{surunkaliQarzdorFilter && <span className='ml-1'>✕</span>}
+					</button>
+				)}
 			</div>
 
 			{/* JADVAL */}
@@ -294,67 +378,85 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 									</td>
 								</tr>
 							) : (
-								filtered.map(k => (
-									<tr
-										key={k.id}
-										className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
-									>
-										<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100'>
-											{k.id}
-										</td>
-										<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
-											{k.kompaniya}
-										</td>
-										<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
-											{parseOy(k.davr || k.sana)}
-										</td>
-										<td className='px-4 py-3'>
-											{t.kirimTurlari[k.tur as keyof typeof t.kirimTurlari] ||
-												k.tur}
-										</td>
-										<td className='px-4 py-3 font-bold text-slate-900 dark:text-slate-100'>
-											{fmt(k.summa)} {k.valyuta}
-										</td>
-										<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
-											{k.sana}
-										</td>
-										<td className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs'>
-											{k.invoice || '—'}
-										</td>
-										<td className='px-4 py-3'>
-											<button
-												onClick={() => handleStatusniAlmashtirish(k)}
-												className='cursor-pointer'
-											>
-												<StatusBadge status={k.holat} t={t} />
-											</button>
-										</td>
-										<td
-											className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[160px] truncate'
-											title={k.izoh || ''}
+								filtered.map(k => {
+									const qarzOylari =
+										mijozQarzdorOylarSoni.get(k.mijozId || k.kompaniya) || 0;
+									const surunkali = k.holat === 'Kutilmoqda' && qarzOylari >= 4;
+
+									return (
+										<tr
+											key={k.id}
+											className={`hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors ${
+												surunkali ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''
+											}`}
 										>
-											{k.izoh || '—'}
-										</td>
-										<td className='px-4 py-3 text-right space-x-2'>
-											<button
-												onClick={() => handleOpenEdit(k)}
-												className='text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded hover:bg-amber-100 transition-colors'
+											<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100'>
+												{k.id}
+											</td>
+											<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
+												<div className='flex items-center gap-1.5'>
+													<span>{k.kompaniya}</span>
+													{surunkali && (
+														<span
+															className='px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-200 rounded'
+															title={`${qarzOylari} oydan beri to'lov qilinmagan!`}
+														>
+															{qarzOylari} oy qarz ⚠️
+														</span>
+													)}
+												</div>
+											</td>
+											<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
+												{parseOy(k.davr || k.sana)}
+											</td>
+											<td className='px-4 py-3'>
+												{t.kirimTurlari[k.tur as keyof typeof t.kirimTurlari] ||
+													k.tur}
+											</td>
+											<td className='px-4 py-3 font-bold text-slate-900 dark:text-slate-100'>
+												{fmt(k.summa)} {k.valyuta}
+											</td>
+											<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
+												{k.sana}
+											</td>
+											<td className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs font-mono'>
+												{k.invoice || '—'}
+											</td>
+											<td className='px-4 py-3'>
+												<button
+													onClick={() => handleStatusniAlmashtirish(k)}
+													className='cursor-pointer'
+												>
+													<StatusBadge status={k.holat} t={t} />
+												</button>
+											</td>
+											<td
+												className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[160px] truncate'
+												title={k.izoh || ''}
 											>
-												✏️ {t.tahrirlash}
-											</button>
-											<button
-												onClick={() => {
-													if (confirm(`${k.invoice}?`)) {
-														onDeleteKirim(k.id);
-													}
-												}}
-												className='text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded hover:bg-rose-100 transition-colors'
-											>
-												🗑️ {t.ochirish}
-											</button>
-										</td>
-									</tr>
-								))
+												{k.izoh || '—'}
+											</td>
+											<td className='px-4 py-3 text-right space-x-2'>
+												<button
+													onClick={() => handleOpenEdit(k)}
+													className='text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded hover:bg-amber-100 transition-colors'
+												>
+													✏️ {t.tahrirlash}
+												</button>
+												<button
+													onClick={() => {
+														if (confirm(`${k.invoice || k.kompaniya}?`)) {
+															onDeleteKirim(k.id);
+														}
+													}}
+													className='text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded hover:bg-rose-100 transition-colors'
+												>
+													🗑️ {t.ochirish}
+												</button>
+											</td>
+										</tr>
+									);
+								})
 							)}
 						</tbody>
 					</table>
