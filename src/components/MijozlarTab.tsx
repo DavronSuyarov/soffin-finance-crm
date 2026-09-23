@@ -2,13 +2,14 @@
 import React, { useMemo, useState } from 'react';
 import { hisoblaMijozlarQarzi } from '../finance';
 import { translations } from '../i18n.js';
-import { Kirim, Mijoz, SoliqRejimi, StatusMijoz } from '../types.js';
+import { Hodim, Kirim, Mijoz, SoliqRejimi, StatusMijoz } from '../types.js';
 import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
 interface MijozlarTabProps {
 	mijozlar: Mijoz[];
+	hodimlar?: Hodim[];
 	kirimlar?: Kirim[];
 	t: (typeof translations)['uz'];
 	onAddMijoz: (yangi: Mijoz) => void;
@@ -20,6 +21,7 @@ const fmt = (n: number) => (Number(n) || 0).toLocaleString('uz-UZ');
 
 export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	mijozlar,
+	hodimlar = [],
 	kirimlar = [],
 	t,
 	onAddMijoz,
@@ -36,9 +38,15 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	const [inn, setInn] = useState('');
 	const [tarifSummasi, setTarifSummasi] = useState<number | ''>('');
 	const [tolovKuni, setTolovKuni] = useState<number>(5);
+	const [masulHodimId, setMasulHodimId] = useState<string>('');
 	const [soliqRejimi, setSoliqRejimi] = useState<SoliqRejimi>('AOS');
 	const [status, setStatus] = useState<StatusMijoz>('Faol');
 	const [izoh, setIzoh] = useState('');
+
+	// Xodimlarni id bo'yicha tezkor topish uchun xarita
+	const hodimlarMap = useMemo(() => {
+		return new Map(hodimlar.map(h => [h.id, h.ism]));
+	}, [hodimlar]);
 
 	// Har bir mijoz bo'yicha haqiqiy debitorlik qarzini hisoblaymiz
 	const debitorlikMap = useMemo(() => {
@@ -47,13 +55,18 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	}, [mijozlar, kirimlar]);
 
 	const filtered = mijozlar
-		.filter(
-			m =>
+		.filter(m => {
+			const masulIsm = m.masulHodimId
+				? hodimlarMap.get(m.masulHodimId) || ''
+				: '';
+			return (
 				(m.kompaniya || '').toLowerCase().includes(search.toLowerCase()) ||
 				(m.kontakt || '').toLowerCase().includes(search.toLowerCase()) ||
 				(m.soliqRejimi || '').toLowerCase().includes(search.toLowerCase()) ||
-				(m.inn || '').includes(search),
-		)
+				masulIsm.toLowerCase().includes(search.toLowerCase()) ||
+				(m.inn || '').includes(search)
+			);
+		})
 		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
 	const handleOpenAdd = () => {
@@ -64,6 +77,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		setInn('');
 		setTarifSummasi('');
 		setTolovKuni(5);
+		setMasulHodimId(hodimlar.length > 0 ? hodimlar[0].id : '');
 		setSoliqRejimi('AOS');
 		setStatus('Faol');
 		setIzoh('');
@@ -78,6 +92,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		setInn(m.inn);
 		setTarifSummasi(m.tarifSummasi || '');
 		setTolovKuni(m.tolovKuni || 5);
+		setMasulHodimId(m.masulHodimId || '');
 		setSoliqRejimi(m.soliqRejimi || 'AOS');
 		setStatus(m.status);
 		setIzoh(m.izoh || '');
@@ -101,6 +116,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				inn: inn.trim(),
 				tarifSummasi: tSumma,
 				tolovKuni: tKuni,
+				masulHodimId: masulHodimId || '',
 				soliqRejimi,
 				status,
 				izoh: izoh.trim(),
@@ -115,6 +131,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				inn: inn.trim(),
 				tarifSummasi: tSumma,
 				tolovKuni: tKuni,
+				masulHodimId: masulHodimId || '',
 				soliqRejimi,
 				status,
 				izoh: izoh.trim(),
@@ -176,6 +193,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 								<th className='px-4 py-3.5'>{t.id}</th>
 								<th className='px-4 py-3.5'>{t.kompaniya}</th>
 								<th className='px-4 py-3.5'>{t.soliqRejimi}</th>
+								<th className='px-4 py-3.5'>{t.masulBuxgalter}</th>
 								<th className='px-4 py-3.5'>{t.masulShaxs}</th>
 								<th className='px-4 py-3.5'>{t.telefon}</th>
 								<th className='px-4 py-3.5'>{t.inn}</th>
@@ -191,7 +209,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							{filtered.length === 0 ? (
 								<tr>
 									<td
-										colSpan={12}
+										colSpan={13}
 										className='text-center py-8 text-slate-400 dark:text-slate-500'
 									>
 										—
@@ -201,6 +219,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 								filtered.map(m => {
 									const qarz = debitorlikMap.get(m.id) || 0;
 									const sanaMatni = `Har oyning ${m.tolovKuni || 5}-sanasi`;
+									const masulHodimIsm = m.masulHodimId
+										? hodimlarMap.get(m.masulHodimId) || '—'
+										: '—';
 
 									return (
 										<tr
@@ -215,6 +236,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 											</td>
 											<td className='px-4 py-3'>
 												{renderRejimBadge(m.soliqRejimi)}
+											</td>
+											<td className='px-4 py-3 text-xs font-semibold text-sky-700 dark:text-sky-400'>
+												{masulHodimIsm}
 											</td>
 											<td className='px-4 py-3'>{m.kontakt || '—'}</td>
 											<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
@@ -296,24 +320,45 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 						/>
 					</div>
 
-					{/* Soliq Rejimi */}
-					<div>
-						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-							{t.soliqRejimi} *
-						</label>
-						<select
-							value={soliqRejimi}
-							onChange={e => setSoliqRejimi(e.target.value as SoliqRejimi)}
-							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500 font-medium'
-						>
-							<option value='AOS'>{t.soliqRejimlari['AOS']}</option>
-							<option value='Umumbelgilangan'>
-								{t.soliqRejimlari['Umumbelgilangan']}
-							</option>
-							<option value='Nodavlat/NHT'>
-								{t.soliqRejimlari['Nodavlat/NHT']}
-							</option>
-						</select>
+					<div className='grid grid-cols-2 gap-3'>
+						{/* Soliq Rejimi */}
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								{t.soliqRejimi} *
+							</label>
+							<select
+								value={soliqRejimi}
+								onChange={e => setSoliqRejimi(e.target.value as SoliqRejimi)}
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500 font-medium'
+							>
+								<option value='AOS'>{t.soliqRejimlari['AOS']}</option>
+								<option value='Umumbelgilangan'>
+									{t.soliqRejimlari['Umumbelgilangan']}
+								</option>
+								<option value='Nodavlat/NHT'>
+									{t.soliqRejimlari['Nodavlat/NHT']}
+								</option>
+							</select>
+						</div>
+
+						{/* Mas'ul Buxgalter */}
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								{t.masulBuxgalter}
+							</label>
+							<select
+								value={masulHodimId}
+								onChange={e => setMasulHodimId(e.target.value)}
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
+							>
+								<option value=''>— Mas’ul buxgalter —</option>
+								{hodimlar.map(h => (
+									<option key={h.id} value={h.id}>
+										{h.ism} ({h.lavozim})
+									</option>
+								))}
+							</select>
+						</div>
 					</div>
 
 					<div className='grid grid-cols-2 gap-3'>

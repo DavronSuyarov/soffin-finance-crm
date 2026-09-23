@@ -368,6 +368,7 @@ export default function App() {
 							<MijozlarTab
 								mijozlar={mijozlar}
 								kirimlar={kirimlar}
+								hodimlar={hodimlar}
 								t={t}
 								onAddMijoz={handleAddMijoz}
 								onUpdateMijoz={handleUpdateMijoz}

@@ -59,19 +59,31 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 
 	const bugunStr = new Date().toISOString().slice(0, 10);
 
+	// Hodimlar xaritasi (ID bo'yicha ismni darhol topish uchun)
+	const hodimlarMap = useMemo(() => {
+		return new Map(hodimlar.map(h => [h.id, h.ism]));
+	}, [hodimlar]);
+
 	// Muddat o'tganligini tekshirib statusni yangilash
 	const formatlanganSoliqlar = useMemo(() => {
 		return soliqlar.map(s => {
+			const masulIsm =
+				s.masulHodimIsm ||
+				(s.masulHodimId ? hodimlarMap.get(s.masulHodimId) || '—' : '—');
 			if (
 				s.holat === 'Kutilmoqda' &&
 				s.oxirgiMuddat &&
 				s.oxirgiMuddat < bugunStr
 			) {
-				return { ...s, holat: 'Kechikkan' as StatusSoliqHisoboti };
+				return {
+					...s,
+					masulHodimIsm: masulIsm,
+					holat: 'Kechikkan' as StatusSoliqHisoboti,
+				};
 			}
-			return s;
+			return { ...s, masulHodimIsm: masulIsm };
 		});
-	}, [soliqlar, bugunStr]);
+	}, [soliqlar, bugunStr, hodimlarMap]);
 
 	const filtered = formatlanganSoliqlar
 		.filter(s => {
@@ -96,7 +108,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 
 	// Har bir mijozning soliq rejimiga mos soliqlarni avtomatik generatsiya qilish
 	const handleGeneratsiyaOylikSoliqlar = () => {
-		const joriyOy = parseOy(new Date().toISOString());
+		const joriyTopshirishOyi = parseOy(new Date().toISOString());
 		let jamiQoshildi = 0;
 
 		const faolMijozlar = mijozlar.filter(m => m.status === 'Faol');
@@ -106,13 +118,14 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 		}
 
 		faolMijozlar.forEach(mijoz => {
-			const masul = hodimlar.find(h => h.id === mijoz.masulHodimId);
-			const hodimIsm = masul ? masul.ism : '';
+			// Mas'ul xodimni aniqlash
+			const masulHodim = hodimlar.find(h => h.id === mijoz.masulHodimId);
+			const hodimIsm = masulHodim ? masulHodim.ism : '';
 
-			// O'zbekiston soliq kalendariga ko'ra yangi soliq hisobotlarini olish
+			// O'zbekiston soliq kalendariga ko'ra o'tgan oy davri va joriy oy muddati bilan generatsiya qilish
 			const royxat = generatsiyaMijozSoliqlari(
 				mijoz,
-				joriyOy,
+				joriyTopshirishOyi,
 				soliqlar,
 				hodimIsm,
 			);
@@ -125,11 +138,11 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 
 		if (jamiQoshildi > 0) {
 			alert(
-				`${jamiQoshildi} ta soliq hisoboti qonuniy rejimlar asosida shakllantirildi (${joriyOy})!`,
+				`${jamiQoshildi} ta soliq hisoboti to‘g‘ri hisobot davri va mas'ul buxgalterlar bilan shakllantirildi!`,
 			);
 		} else {
 			alert(
-				'Barcha faol mijozlarning joriy davr uchun soliqlari shakllantirib bo‘lingan.',
+				'Barcha faol mijozlarning hisobotlari allaqachon to‘liq shakllantirilgan.',
 			);
 		}
 	};
@@ -140,13 +153,22 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 		setMijozId(birinchiMijoz ? birinchiMijoz.id : '');
 		setSoliqTuri('JSHOD va Ijtimoiy soliq');
 		setDavriyligi('Oylik');
-		const joriyOy = parseOy(new Date().toISOString());
-		setDavr(joriyOy);
 
-		const [yStr, mStr] = joriyOy.split('-');
-		setOxirgiMuddat(
-			getHaqiqiyIshKuniMuddat(parseInt(yStr, 10), parseInt(mStr, 10), 15),
-		);
+		const bugun = new Date();
+		const joriyYil = bugun.getFullYear();
+		const joriyOy = bugun.getMonth() + 1;
+
+		// Oylik hisobot davri: o'tgan oy
+		let davrYili = joriyYil;
+		let davrOyi = joriyOy - 1;
+		if (davrOyi === 0) {
+			davrOyi = 12;
+			davrYili = joriyYil - 1;
+		}
+		setDavr(`${davrYili}-${String(davrOyi).padStart(2, '0')}`);
+
+		// Muddat: joriy oyning 15-ish kuni
+		setOxirgiMuddat(getHaqiqiyIshKuniMuddat(joriyYil, joriyOy, 15));
 		setTopshirilganSana('');
 		setHolat('Kutilmoqda');
 		setMasulHodimId(birinchiMijoz?.masulHodimId || '');
@@ -393,7 +415,7 @@ export const SoliqlarTab: React.FC<SoliqlarTabProps> = ({
 											<td className='px-4 py-3 text-xs text-slate-500 dark:text-slate-400'>
 												{s.topshirilganSana || '—'}
 											</td>
-											<td className='px-4 py-3 text-xs font-medium text-sky-700 dark:text-sky-400'>
+											<td className='px-4 py-3 text-xs font-semibold text-sky-700 dark:text-sky-400'>
 												{s.masulHodimIsm || '—'}
 											</td>
 											<td className='px-4 py-3'>

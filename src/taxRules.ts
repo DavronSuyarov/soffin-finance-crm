@@ -12,7 +12,7 @@ export interface SoliqQoidasi {
 	rejimlari: (SoliqRejimi | 'Barchasi')[];
 	davriyligi: SoliqHisobotiDavriyligi;
 	topshirishKuni: number; // 15, 20 yoki 1
-	amalQiluvchiOylar?: number[]; // Agar choraklik yoki yillik bo'lsa (1-12)
+	amalQiluvchiOylar?: number[]; // Qaysi oylarda topshiriladi (1-12)
 	tavsif: string;
 }
 
@@ -50,21 +50,21 @@ export const SOLIQ_QOIDALARI: SoliqQoidasi[] = [
 		rejimlari: ['Barchasi'],
 		davriyligi: 'Oylik',
 		topshirishKuni: 15, // Har oyning 15-sanasigacha
-		tavsif: 'Jismoniy shaxslardan olinadigan daromad solig‘i va ijtimoiy soliq',
+		tavsif: 'JSHOD va Ijtimoiy soliq hisoboti',
 	},
 	{
 		nomi: 'Aylanmadan olinadigan soliq (AOS)',
 		rejimlari: ['AOS'],
 		davriyligi: 'Oylik',
 		topshirishKuni: 15, // Keyingi oyning 15-sanasigacha
-		tavsif: 'Aylanmadan olinadigan soliq oylik hisob-kitobi',
+		tavsif: 'AOS oylik hisob-kitobi',
 	},
 	{
 		nomi: 'QQS',
 		rejimlari: ['Umumbelgilangan'],
 		davriyligi: 'Oylik',
 		topshirishKuni: 20, // Keyingi oyning 20-sanasigacha
-		tavsif: 'Qo‘shilgan qiymat solig‘i hisoboti',
+		tavsif: 'QQS hisoboti',
 	},
 
 	// 2. CHORAKLIK HISOBOTLAR (Aprel, Iyul, Oktyabr)
@@ -73,7 +73,7 @@ export const SOLIQ_QOIDALARI: SoliqQoidasi[] = [
 		rejimlari: ['Umumbelgilangan'],
 		davriyligi: 'Choraklik',
 		topshirishKuni: 20,
-		amalQiluvchiOylar: [4, 7, 10], // 1, 2, 3-choraklar yakuni
+		amalQiluvchiOylar: [4, 7, 10], // Aprel (1-ch), Iyul (2-ch), Oktyabr (3-ch)
 		tavsif: 'Foyda solig‘i bo‘yicha choraklik hisob-kitob',
 	},
 
@@ -97,20 +97,28 @@ export const SOLIQ_QOIDALARI: SoliqQoidasi[] = [
 ];
 
 /**
- * Mijozning soliq rejimi va tanlangan oyga (YYYY-MM) asoslanib,
- * O'zbekiston qonunchiligiga mos barcha hisobotlarni shakllantiruvchi generator
+ * joriyTopshirishOyi ("YYYY-MM") asosida haqiqiy hisobot DAVRIni hisoblaydi va soliqlarni shakllantiradi
  */
 export function generatsiyaMijozSoliqlari(
 	mijoz: Mijoz,
-	davr: string, // "YYYY-MM"
+	joriyTopshirishOyi: string, // Masalan: "2026-09"
 	mavjudSoliqlar: SoliqHisoboti[],
 	hodimIsm: string = '',
 ): SoliqHisoboti[] {
 	const natija: SoliqHisoboti[] = [];
-	const [yilStr, oyStr] = davr.split('-');
-	const yil = parseInt(yilStr, 10);
-	const oy = parseInt(oyStr, 10);
+	const [yilStr, oyStr] = joriyTopshirishOyi.split('-');
+	const joriyYil = parseInt(yilStr, 10);
+	const topshirishOyi = parseInt(oyStr, 10);
 	const rejim: SoliqRejimi = mijoz.soliqRejimi || 'AOS';
+
+	// 1. Oylik hisobotlar uchun DAVR: joriy oy 09 bo'lsa, davr 08 (o'tgan oy) bo'ladi
+	let hisobotYili = joriyYil;
+	let hisobotOyi = topshirishOyi - 1;
+	if (hisobotOyi === 0) {
+		hisobotOyi = 12;
+		hisobotYili = joriyYil - 1;
+	}
+	const oylikHisobotDavri = `${hisobotYili}-${String(hisobotOyi).padStart(2, '0')}`;
 
 	SOLIQ_QOIDALARI.forEach(qoida => {
 		// Rejim mosligini tekshirish
@@ -119,30 +127,43 @@ export function generatsiyaMijozSoliqlari(
 
 		if (!rejimMos) return;
 
-		// Davriylik mosligini tekshirish
 		let amalQiladi = false;
+		let hisobotDavriStr = oylikHisobotDavri;
+
 		if (qoida.davriyligi === 'Oylik') {
 			amalQiladi = true;
+			hisobotDavriStr = oylikHisobotDavri; // Masalan: "2026-08"
 		} else if (
+			qoida.davriyligi === 'Choraklik' &&
 			qoida.amalQiluvchiOylar &&
-			qoida.amalQiluvchiOylar.includes(oy)
+			qoida.amalQiluvchiOylar.includes(topshirishOyi)
 		) {
 			amalQiladi = true;
+			const chorakRaqam = topshirishOyi === 4 ? 1 : topshirishOyi === 7 ? 2 : 3;
+			hisobotDavriStr = `${joriyYil}-Q${chorakRaqam}`;
+		} else if (
+			qoida.davriyligi === 'Yillik' &&
+			qoida.amalQiluvchiOylar &&
+			qoida.amalQiluvchiOylar.includes(topshirishOyi)
+		) {
+			amalQiladi = true;
+			hisobotDavriStr = `${joriyYil - 1}-Yillik`;
 		}
 
 		if (amalQiladi) {
-			// Ushbu davrda bu mijozga aynan shu soliq turi avval kiritilganmi tekshiramiz
+			// Ushbu mijozga aynan shu davr va soliq turi avval shakllantirilganmi tekshiramiz
 			const alllaqachonMavjud = mavjudSoliqlar.some(
 				s =>
 					s.mijozId === mijoz.id &&
 					s.soliqTuri === qoida.nomi &&
-					s.davr === davr,
+					s.davr === hisobotDavriStr,
 			);
 
 			if (!alllaqachonMavjud) {
+				// Topshirish muddati joriy oyning 15 yoki 20-kuni (ish kuniga to'g'rilanadi)
 				const oxirgiMuddat = getHaqiqiyIshKuniMuddat(
-					yil,
-					oy,
+					joriyYil,
+					topshirishOyi,
 					qoida.topshirishKuni,
 				);
 
@@ -152,12 +173,12 @@ export function generatsiyaMijozSoliqlari(
 					kompaniya: mijoz.kompaniya,
 					soliqTuri: qoida.nomi,
 					davriyligi: qoida.davriyligi,
-					davr,
-					oxirgiMuddat,
+					davr: hisobotDavriStr, // Haqiqiy hisobot berilayotgan davr (2026-08)
+					oxirgiMuddat, // Topshirish kerak bo'lgan sana (2026-09-15 yoki 2026-09-20)
 					holat: 'Kutilmoqda',
 					masulHodimId: mijoz.masulHodimId || '',
 					masulHodimIsm: hodimIsm,
-					izoh: `${qoida.tavsif} (${qoida.davriyligi})`,
+					izoh: `${hisobotDavriStr} ${qoida.tavsif} (${qoida.davriyligi})`,
 				});
 			}
 		}
