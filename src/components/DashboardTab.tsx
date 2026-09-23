@@ -27,14 +27,21 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ summary, t }) => {
 
 	return (
 		<div className='space-y-6'>
-			{/* 1. Asosiy Statistik Kartochkalar */}
-			<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+			{/* 1. Asosiy Statistik Kartochkalar (5 ta blok) */}
+			<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
 				<StatCard
 					title={t.tushganKirim}
 					value={`${fmt(summary?.jamiKirim ?? 0)} UZS`}
 					subtitle={`${t.kutilmoqda}: ${fmt(summary?.kutilayotganKirim ?? 0)} UZS`}
 					icon='⬆️'
 					color='green'
+				/>
+				<StatCard
+					title='Mijozlar Qarzi'
+					value={`${fmt(summary?.mijozlarQarzi ?? 0)} UZS`}
+					subtitle={`Debitorlik | Faol: ${summary?.faolMijozlar ?? 0} ta`}
+					icon='⏳'
+					color='amber'
 				/>
 				<StatCard
 					title={t.umumiyChiqim}

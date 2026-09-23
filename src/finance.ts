@@ -7,10 +7,11 @@ import {
 	Kirim,
 	MaoshYozuvi,
 	Mijoz,
+	MijozQarzdorlik,
 } from './types.js';
 
 // Sanadan toza "YYYY-MM" formatini ajratish
-const parseOy = (dStr: any): string => {
+export const parseOy = (dStr: any): string => {
 	if (!dStr) return '';
 	const str = String(dStr).trim();
 	if (/^\d{4}-\d{2}$/.test(str)) return str;
@@ -25,6 +26,50 @@ const parseOy = (dStr: any): string => {
 	}
 };
 
+/**
+ * Har bir mijoz bo'yicha haqiqiy debitorlik (qarz) hisobi
+ */
+export function hisoblaMijozlarQarzi(
+	mijozlar: Mijoz[],
+	kirimlar: Kirim[],
+): MijozQarzdorlik[] {
+	return mijozlar.map(m => {
+		const mijozKirimlari = kirimlar.filter(
+			k => k.mijozId === m.id || k.kompaniya === m.kompaniya,
+		);
+
+		// Jami chiqarilgan kvitansiyalar summasi
+		const jamiKutilgan = mijozKirimlari.reduce(
+			(sum, k) => sum + (Number(k.summa) || 0),
+			0,
+		);
+
+		// Amalda to'langan summa
+		const jamiTolangan = mijozKirimlari
+			.filter(k => {
+				const holatStr = String(k.holat || '').toLowerCase();
+				return (
+					holatStr.includes('to') ||
+					holatStr.includes('bajarildi') ||
+					holatStr.includes('paid')
+				);
+			})
+			.reduce((sum, k) => sum + (Number(k.summa) || 0), 0);
+
+		const qarzSummasi = Math.max(0, jamiKutilgan - jamiTolangan);
+
+		return {
+			mijozId: m.id,
+			kompaniya: m.kompaniya,
+			telefon: m.telefon,
+			jamiKutilgan,
+			jamiTolangan,
+			qarzSummasi,
+			holat: qarzSummasi > 0 ? 'Qarzdor' : 'QarziYoq',
+		};
+	});
+}
+
 export function calculateDashboardSummary(
 	mijozlar: Mijoz[],
 	hodimlar: Hodim[],
@@ -32,9 +77,14 @@ export function calculateDashboardSummary(
 	chiqimlar: Chiqim[],
 	maoshlar: MaoshYozuvi[],
 ): DashboardXulosa {
-	// 1. Mijozlar statistikasi
+	// 1. Mijozlar statistikasi va Debitorlik qarzi
 	const jamiMijozlar = mijozlar.length;
 	const faolMijozlar = mijozlar.filter(m => m.status === 'Faol').length;
+	const debitorlikTahlili = hisoblaMijozlarQarzi(mijozlar, kirimlar);
+	const mijozlarQarzi = debitorlikTahlili.reduce(
+		(sum, item) => sum + item.qarzSummasi,
+		0,
+	);
 
 	// 2. Kirimlar hisobi
 	let jamiKirim = 0;
@@ -123,8 +173,12 @@ export function calculateDashboardSummary(
 	kirimlar.forEach(k => {
 		const holatStr = String(k.holat || '').toLowerCase();
 		// Faqat tushgan pullar grafikda kirim sifatida ko'rinadi
-		if (!holatStr.includes('kutil') && !holatStr.includes('pending')) {
-			const oy = parseOy(k.sana) || joriyOy;
+		if (
+			!holatStr.includes('kutil') &&
+			!holatStr.includes('pending') &&
+			!holatStr.includes('bekor')
+		) {
+			const oy = parseOy(k.davr || k.sana) || joriyOy;
 			if (!oylarMap[oy]) {
 				oylarMap[oy] = { kirim: 0, jamiChiqim: 0 };
 			}
@@ -169,6 +223,7 @@ export function calculateDashboardSummary(
 		berilganMaosh,
 		sofFoyda,
 		xodimlardanQarz,
+		mijozlarQarzi,
 		jamiHodimlar: hodimlar.length,
 		faolHodimlar: hodimlar.filter(
 			h => h.holat === 'Faol' || (h as any).status === 'Faol',

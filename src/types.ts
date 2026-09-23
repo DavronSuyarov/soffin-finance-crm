@@ -35,6 +35,8 @@ export interface Mijoz {
 	kontakt: string;
 	telefon: string;
 	inn: string;
+	tarifSummasi: number; // Har oylik abonent xizmat haqi
+	tolovKuni: number; // Har oyning qaysi sanasigacha to'lanishi kerak (1-31)
 	status: StatusMijoz;
 	izoh?: string;
 	sana: string;
@@ -49,16 +51,17 @@ export interface Hodim {
 	telefon: string;
 	holat: StatusHodim;
 	sana: string;
-	izoh?: string; // <-- Izoh maydoni
+	izoh?: string;
 }
 
 export interface Kirim {
 	id: string;
 	mijozId: string;
 	kompaniya: string;
+	davr?: string; // Qaysi oy uchun to'lov ekanligi ("YYYY-MM")
 	summa: number;
 	valyuta: Currency;
-	sana: string;
+	sana: string; // Faktik to'lov/kvitansiya sanasi ("YYYY-MM-DD")
 	tur: KirimXizmatTuri;
 	holat: StatusTranzaksiya;
 	invoice: string;
@@ -91,7 +94,7 @@ export interface MaoshYozuvi {
 }
 
 // ============================================================
-// 3. TAHLIL VA DASHBOARD INTERFEYSLARI (Yetishmayotgan qism)
+// 3. TAHLIL VA DASHBOARD INTERFEYSLARI
 // ============================================================
 export interface OylikKorsatkich {
 	davr: string;
@@ -108,6 +111,16 @@ export interface ChiqimStatistika {
 	ulushFoiz: number;
 }
 
+export interface MijozQarzdorlik {
+	mijozId: string;
+	kompaniya: string;
+	telefon: string;
+	jamiKutilgan: number;
+	jamiTolangan: number;
+	qarzSummasi: number;
+	holat: 'QarziYoq' | 'Qarzdor';
+}
+
 export interface DashboardXulosa {
 	jamiMijozlar: number;
 	faolMijozlar: number;
@@ -120,6 +133,7 @@ export interface DashboardXulosa {
 	sofFoyda: number;
 	kutilayotganKirim: number;
 	xodimlardanQarz: number;
+	mijozlarQarzi: number; // Jami mijozlarning firmadan qarzdorligi (debitorlik)
 	oylikTahlil: OylikKorsatkich[];
 	chiqimKategoriyalari: ChiqimStatistika[];
 }

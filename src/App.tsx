@@ -99,7 +99,7 @@ export default function App() {
 		}
 	}, [isAuthenticated]);
 
-	// Dashboard uchun hisob-kitob
+	// Dashboard uchun umumiy hisob-kitob (Debitorlik bilan birga)
 	const dashboardSummary = useMemo(() => {
 		return calculateDashboardSummary(
 			mijozlar,
@@ -110,7 +110,9 @@ export default function App() {
 		);
 	}, [mijozlar, hodimlar, kirimlar, chiqimlar, maoshlar]);
 
-	// CRUD
+	// --- CRUD Funksiyalari ---
+
+	// Mijozlar
 	const handleAddMijoz = (yangi: Mijoz) => {
 		setMijozlar(prev => [yangi, ...prev]);
 		addSheetRow('Mijozlar', mapMijozToRow(yangi));
@@ -124,6 +126,7 @@ export default function App() {
 		deleteSheetRow('Mijozlar', id);
 	};
 
+	// Hodimlar
 	const handleAddHodim = (yangi: Hodim) => {
 		setHodimlar(prev => [yangi, ...prev]);
 		addSheetRow('Hodimlar', mapHodimToRow(yangi));
@@ -137,6 +140,7 @@ export default function App() {
 		deleteSheetRow('Hodimlar', id);
 	};
 
+	// Kirim
 	const handleAddKirim = (yangi: Kirim) => {
 		setKirimlar(prev => [yangi, ...prev]);
 		addSheetRow('Kirim', mapKirimToRow(yangi));
@@ -150,6 +154,7 @@ export default function App() {
 		deleteSheetRow('Kirim', id);
 	};
 
+	// Chiqim
 	const handleAddChiqim = (yangi: Chiqim) => {
 		setChiqimlar(prev => [yangi, ...prev]);
 		addSheetRow('Chiqim', mapChiqimToRow(yangi));
@@ -163,6 +168,7 @@ export default function App() {
 		deleteSheetRow('Chiqim', id);
 	};
 
+	// Maosh
 	const handleAddMaosh = (yangi: MaoshYozuvi) => {
 		setMaoshlar(prev => [yangi, ...prev]);
 		addSheetRow('Maosh', mapMaoshToRow(yangi));
@@ -182,6 +188,7 @@ export default function App() {
 
 	return (
 		<div className='min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-12 transition-colors duration-200'>
+			{/* Navigatsiya */}
 			<nav className='bg-slate-900 dark:bg-slate-950 text-white px-4 md:px-6 py-3 sticky top-0 z-50 shadow-md border-b border-slate-800'>
 				<div className='max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
 					<div className='flex items-center justify-between w-full sm:w-auto gap-3'>
@@ -280,6 +287,7 @@ export default function App() {
 				</div>
 			</nav>
 
+			{/* Asosiy Ekran */}
 			<main className='max-w-7xl mx-auto p-6'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
@@ -296,6 +304,7 @@ export default function App() {
 						{tab === 'mijozlar' && (
 							<MijozlarTab
 								mijozlar={mijozlar}
+								kirimlar={kirimlar} // Debitorlik qarzini real vaqtda hisoblash uchun
 								t={t}
 								onAddMijoz={handleAddMijoz}
 								onUpdateMijoz={handleUpdateMijoz}

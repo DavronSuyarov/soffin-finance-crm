@@ -1,21 +1,26 @@
 // src/components/MijozlarTab.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { hisoblaMijozlarQarzi } from '../finance';
 import { translations } from '../i18n.js';
-import { Mijoz, StatusMijoz } from '../types.js';
+import { Kirim, Mijoz, StatusMijoz } from '../types.js';
 import { generateNextId } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
 
 interface MijozlarTabProps {
 	mijozlar: Mijoz[];
+	kirimlar?: Kirim[];
 	t: (typeof translations)['uz'];
 	onAddMijoz: (yangi: Mijoz) => void;
 	onUpdateMijoz: (tahrirlangan: Mijoz) => void;
 	onDeleteMijoz: (id: string) => void;
 }
 
+const fmt = (n: number) => (Number(n) || 0).toLocaleString('uz-UZ');
+
 export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	mijozlar,
+	kirimlar = [],
 	t,
 	onAddMijoz,
 	onUpdateMijoz,
@@ -29,8 +34,17 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	const [kontakt, setKontakt] = useState('');
 	const [telefon, setTelefon] = useState('');
 	const [inn, setInn] = useState('');
+	const [tarifSummasi, setTarifSummasi] = useState<number | ''>('');
+	const [tolovKuni, setTolovKuni] = useState<number>(5);
 	const [status, setStatus] = useState<StatusMijoz>('Faol');
 	const [izoh, setIzoh] = useState('');
+
+	// Import qilingan hisoblaMijozlarQarzi shu yerda ishlatiladi
+	// Har bir mijoz bo'yicha haqiqiy debitorlik qarzini aniqlaymiz
+	const debitorlikMap = useMemo(() => {
+		const royxat = hisoblaMijozlarQarzi(mijozlar, kirimlar);
+		return new Map(royxat.map(d => [d.mijozId, d.qarzSummasi]));
+	}, [mijozlar, kirimlar]);
 
 	const filtered = mijozlar
 		.filter(
@@ -47,6 +61,8 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		setKontakt('');
 		setTelefon('');
 		setInn('');
+		setTarifSummasi('');
+		setTolovKuni(5);
 		setStatus('Faol');
 		setIzoh('');
 		setIsModalOpen(true);
@@ -58,6 +74,8 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		setKontakt(m.kontakt);
 		setTelefon(m.telefon);
 		setInn(m.inn);
+		setTarifSummasi(m.tarifSummasi || '');
+		setTolovKuni(m.tolovKuni || 5);
 		setStatus(m.status);
 		setIzoh(m.izoh || '');
 		setIsModalOpen(true);
@@ -67,6 +85,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 		e.preventDefault();
 		if (!kompaniya.trim()) return;
 
+		const tSumma = Number(tarifSummasi) || 0;
+		const tKuni = Number(tolovKuni) || 5;
+
 		if (editingId) {
 			const mavjud = mijozlar.find(m => m.id === editingId);
 			onUpdateMijoz({
@@ -75,6 +96,8 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				kontakt: kontakt.trim(),
 				telefon: telefon.trim(),
 				inn: inn.trim(),
+				tarifSummasi: tSumma,
+				tolovKuni: tKuni,
 				status,
 				izoh: izoh.trim(),
 				sana: mavjud ? mavjud.sana : new Date().toLocaleDateString('uz-UZ'),
@@ -86,6 +109,8 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				kontakt: kontakt.trim(),
 				telefon: telefon.trim(),
 				inn: inn.trim(),
+				tarifSummasi: tSumma,
+				tolovKuni: tKuni,
 				status,
 				izoh: izoh.trim(),
 				sana: new Date().toLocaleDateString('uz-UZ'),
@@ -124,6 +149,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 								<th className='px-4 py-3.5'>{t.masulShaxs}</th>
 								<th className='px-4 py-3.5'>{t.telefon}</th>
 								<th className='px-4 py-3.5'>{t.inn}</th>
+								<th className='px-4 py-3.5'>Oylik Tarif</th>
+								<th className='px-4 py-3.5'>To‘lov muddati</th>
+								<th className='px-4 py-3.5'>Debitorlik Qarzi</th>
 								<th className='px-4 py-3.5'>{t.holat}</th>
 								<th className='px-4 py-3.5'>{t.izoh}</th>
 								<th className='px-4 py-3.5 text-right'>{t.amallar}</th>
@@ -133,60 +161,80 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							{filtered.length === 0 ? (
 								<tr>
 									<td
-										colSpan={8}
+										colSpan={11}
 										className='text-center py-8 text-slate-400 dark:text-slate-500'
 									>
 										—
 									</td>
 								</tr>
 							) : (
-								filtered.map(m => (
-									<tr
-										key={m.id}
-										className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
-									>
-										<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100'>
-											{m.id}
-										</td>
-										<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
-											{m.kompaniya}
-										</td>
-										<td className='px-4 py-3'>{m.kontakt}</td>
-										<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
-											{m.telefon}
-										</td>
-										<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
-											{m.inn}
-										</td>
-										<td className='px-4 py-3'>
-											<StatusBadge status={m.status} />
-										</td>
-										<td
-											className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[180px] truncate'
-											title={m.izoh || ''}
+								filtered.map(m => {
+									const qarz = debitorlikMap.get(m.id) || 0;
+									return (
+										<tr
+											key={m.id}
+											className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
 										>
-											{m.izoh || '—'}
-										</td>
-										<td className='px-4 py-3 text-right space-x-2'>
-											<button
-												onClick={() => handleOpenEdit(m)}
-												className='text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded hover:bg-amber-100 transition-colors'
+											<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100'>
+												{m.id}
+											</td>
+											<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
+												{m.kompaniya}
+											</td>
+											<td className='px-4 py-3'>{m.kontakt || '—'}</td>
+											<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
+												{m.telefon || '—'}
+											</td>
+											<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
+												{m.inn || '—'}
+											</td>
+											<td className='px-4 py-3 font-bold text-slate-800 dark:text-slate-100'>
+												{fmt(m.tarifSummasi || 0)} UZS
+											</td>
+											<td className='px-4 py-3 text-xs text-slate-500 dark:text-slate-400'>
+												Har oyning {m.tolovKuni || 5}-sanasi
+											</td>
+											<td className='px-4 py-3'>
+												{qarz > 0 ? (
+													<span className='font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded text-xs inline-block'>
+														{fmt(qarz)} UZS ⚠️
+													</span>
+												) : (
+													<span className='text-emerald-600 dark:text-emerald-400 text-xs font-semibold'>
+														Qarzi yo‘q ✓
+													</span>
+												)}
+											</td>
+											<td className='px-4 py-3'>
+												<StatusBadge status={m.status} />
+											</td>
+											<td
+												className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[150px] truncate'
+												title={m.izoh || ''}
 											>
-												✏️ {t.tahrirlash}
-											</button>
-											<button
-												onClick={() => {
-													if (confirm(`${m.kompaniya}?`)) {
-														onDeleteMijoz(m.id);
-													}
-												}}
-												className='text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded hover:bg-rose-100 transition-colors'
-											>
-												🗑️ {t.ochirish}
-											</button>
-										</td>
-									</tr>
-								))
+												{m.izoh || '—'}
+											</td>
+											<td className='px-4 py-3 text-right space-x-2'>
+												<button
+													onClick={() => handleOpenEdit(m)}
+													className='text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded hover:bg-amber-100 transition-colors'
+												>
+													✏️ {t.tahrirlash}
+												</button>
+												<button
+													onClick={() => {
+														if (confirm(`${m.kompaniya}?`)) {
+															onDeleteMijoz(m.id);
+														}
+													}}
+													className='text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded hover:bg-rose-100 transition-colors'
+												>
+													🗑️ {t.ochirish}
+												</button>
+											</td>
+										</tr>
+									);
+								})
 							)}
 						</tbody>
 					</table>
@@ -262,6 +310,40 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							</select>
 						</div>
 					</div>
+
+					<div className='grid grid-cols-2 gap-3'>
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								Oylik Tarif (Abonent to‘lovi) *
+							</label>
+							<input
+								type='number'
+								required
+								min='0'
+								value={tarifSummasi}
+								onChange={e =>
+									setTarifSummasi(e.target.value ? Number(e.target.value) : '')
+								}
+								placeholder='Masalan: 3000000'
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500 font-bold'
+							/>
+						</div>
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								To‘lov sanasi (har oyning) *
+							</label>
+							<input
+								type='number'
+								required
+								min='1'
+								max='31'
+								value={tolovKuni}
+								onChange={e => setTolovKuni(Number(e.target.value))}
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
+							/>
+						</div>
+					</div>
+
 					<div>
 						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 							{t.izoh}

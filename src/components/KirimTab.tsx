@@ -1,5 +1,6 @@
 // src/components/KirimTab.tsx
 import React, { useState } from 'react';
+import { parseOy } from '../finance';
 import { translations } from '../i18n.js';
 import {
 	Currency,
@@ -21,7 +22,7 @@ interface KirimTabProps {
 	onDeleteKirim: (id: string) => void;
 }
 
-const fmt = (n: number) => n.toLocaleString('uz-UZ');
+const fmt = (n: number) => (Number(n) || 0).toLocaleString('uz-UZ');
 
 export const KirimTab: React.FC<KirimTabProps> = ({
 	kirimlar,
@@ -37,6 +38,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 	const [editingId, setEditingId] = useState<string | null>(null);
 
 	const [mijozId, setMijozId] = useState('');
+	const [davr, setDavr] = useState(parseOy(new Date().toISOString()));
 	const [summa, setSumma] = useState<number | ''>('');
 	const [valyuta, setValyuta] = useState<Currency>('UZS');
 	const [sana, setSana] = useState('');
@@ -48,28 +50,82 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 	const filtered = kirimlar
 		.filter(k => {
 			const matchSearch =
-				k.kompaniya.toLowerCase().includes(search.toLowerCase()) ||
-				k.invoice.toLowerCase().includes(search.toLowerCase()) ||
-				k.tur.toLowerCase().includes(search.toLowerCase());
+				(k.kompaniya || '').toLowerCase().includes(search.toLowerCase()) ||
+				(k.invoice || '').toLowerCase().includes(search.toLowerCase()) ||
+				(k.tur || '').toLowerCase().includes(search.toLowerCase()) ||
+				(k.davr || '').includes(search);
 			const matchStatus = !statusFilter || k.holat === statusFilter;
 			return matchSearch && matchStatus;
 		})
 		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
-	const jamiSumma = filtered.reduce((acc, k) => acc + k.summa, 0);
+	const jamiSumma = filtered.reduce(
+		(acc, k) => acc + (Number(k.summa) || 0),
+		0,
+	);
 	const tolanganSumma = filtered
 		.filter(k => k.holat === 'Tolangan')
-		.reduce((acc, k) => acc + k.summa, 0);
+		.reduce((acc, k) => acc + (Number(k.summa) || 0), 0);
 	const kutilayotganSumma = filtered
 		.filter(k => k.holat === 'Kutilmoqda')
-		.reduce((acc, k) => acc + k.summa, 0);
+		.reduce((acc, k) => acc + (Number(k.summa) || 0), 0);
+
+	// Barcha faol mijozlarga oylik abonent hisobini avtomatik chiqarish
+	const handleGeneratsiyaOylikAbonent = () => {
+		const joriyOy = parseOy(new Date().toISOString());
+		let hisob = 0;
+
+		const faolMijozlar = mijozlar.filter(m => m.status === 'Faol');
+		if (faolMijozlar.length === 0) {
+			alert('Abonent shakllantirish uchun faol mijozlar topilmadi.');
+			return;
+		}
+
+		faolMijozlar.forEach((m, idx) => {
+			const mavjud = kirimlar.some(
+				k =>
+					(k.mijozId === m.id || k.kompaniya === m.kompaniya) &&
+					parseOy(k.davr || k.sana) === joriyOy,
+			);
+
+			if (!mavjud && Number(m.tarifSummasi) > 0) {
+				const tolovSanasi = `${joriyOy}-${String(m.tolovKuni || 5).padStart(2, '0')}`;
+				onAddKirim({
+					id: generateNextId('k', kirimlar) + (idx > 0 ? `_${idx}` : ''),
+					mijozId: m.id,
+					kompaniya: m.kompaniya,
+					davr: joriyOy,
+					summa: Number(m.tarifSummasi),
+					valyuta: 'UZS',
+					sana: tolovSanasi,
+					tur: 'Buxgalteriya hisobi',
+					holat: 'Kutilmoqda',
+					invoice: `INV-${joriyOy.replace('-', '')}-${m.id}`,
+					izoh: `${joriyOy} oylik abonent to‘lovi`,
+				});
+				hisob++;
+			}
+		});
+
+		if (hisob > 0) {
+			alert(
+				`${hisob} ta mijoz uchun ${joriyOy} oyi to‘lovlari kutilmoqda sifatida shakllantirildi!`,
+			);
+		} else {
+			alert(
+				`Barcha faol mijozlar uchun ${joriyOy} oyi kvitansiyalari allaqachon mavjud.`,
+			);
+		}
+	};
 
 	const handleOpenAdd = () => {
 		setEditingId(null);
-		setMijozId(mijozlar.length ? mijozlar[0].id : '');
-		setSumma('');
+		const birinchi = mijozlar.length ? mijozlar[0] : null;
+		setMijozId(birinchi ? birinchi.id : '');
+		setDavr(parseOy(new Date().toISOString()));
+		setSumma(birinchi ? birinchi.tarifSummasi || '' : '');
 		setValyuta('UZS');
-		setSana(new Date().toLocaleDateString('uz-UZ'));
+		setSana(new Date().toISOString().slice(0, 10));
 		setTur('Buxgalteriya hisobi');
 		setHolat('Tolangan');
 		setInvoice(`INV-${String(kirimlar.length + 1).padStart(3, '0')}`);
@@ -80,6 +136,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 	const handleOpenEdit = (k: Kirim) => {
 		setEditingId(k.id);
 		setMijozId(k.mijozId);
+		setDavr(parseOy(k.davr || k.sana));
 		setSumma(k.summa);
 		setValyuta(k.valyuta);
 		setSana(k.sana);
@@ -88,6 +145,27 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 		setInvoice(k.invoice);
 		setIzoh(k.izoh || '');
 		setIsModalOpen(true);
+	};
+
+	const handleMijozSelectChange = (yangiId: string) => {
+		setMijozId(yangiId);
+		const tanlangan = mijozlar.find(m => m.id === yangiId);
+		if (tanlangan && !editingId) {
+			setSumma(tanlangan.tarifSummasi || '');
+		}
+	};
+
+	const handleStatusniAlmashtirish = (k: Kirim) => {
+		const yangiHolat: StatusTranzaksiya =
+			k.holat === 'Tolangan' ? 'Kutilmoqda' : 'Tolangan';
+		onUpdateKirim({
+			...k,
+			holat: yangiHolat,
+			sana:
+				yangiHolat === 'Tolangan'
+					? new Date().toISOString().slice(0, 10)
+					: k.sana,
+		});
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -101,15 +179,17 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 
 		const tanlanganMijoz = mijozlar.find(m => m.id === mijozId);
 		const kompaniyaNomi = tanlanganMijoz ? tanlanganMijoz.kompaniya : '—';
+		const joriySana = sana || new Date().toISOString().slice(0, 10);
 
 		if (editingId) {
 			onUpdateKirim({
 				id: editingId,
 				mijozId,
 				kompaniya: kompaniyaNomi,
+				davr: parseOy(davr || joriySana),
 				summa: Number(summa),
 				valyuta,
-				sana: sana || new Date().toLocaleDateString('uz-UZ'),
+				sana: joriySana,
 				tur,
 				holat,
 				invoice: invoice.trim(),
@@ -120,9 +200,10 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 				id: generateNextId('k', kirimlar),
 				mijozId,
 				kompaniya: kompaniyaNomi,
+				davr: parseOy(davr || joriySana),
 				summa: Number(summa),
 				valyuta,
-				sana: sana || new Date().toLocaleDateString('uz-UZ'),
+				sana: joriySana,
 				tur,
 				holat,
 				invoice: invoice.trim(),
@@ -134,7 +215,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 
 	return (
 		<div className='space-y-4'>
-			{/* 1. FILTRLASH PANELI */}
+			{/* 1. FILTRLASH VA AMALLAR PANELI */}
 			<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors'>
 				<div className='flex flex-wrap items-center gap-3 flex-1'>
 					<input
@@ -144,7 +225,6 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 						onChange={e => setSearch(e.target.value)}
 						className='px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 rounded-lg text-sm focus:outline-none focus:border-sky-500 w-full sm:w-64'
 					/>
-					{/* Holatlar filtri (Ko'p tilli) */}
 					<select
 						value={statusFilter}
 						onChange={e => setStatusFilter(e.target.value)}
@@ -156,12 +236,22 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 						<option value='Bekor'>{t.statuslar['Bekor']}</option>
 					</select>
 				</div>
-				<button
-					onClick={handleOpenAdd}
-					className='px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs'
-				>
-					{t.yangiKirim}
-				</button>
+
+				<div className='flex items-center gap-2'>
+					<button
+						onClick={handleGeneratsiyaOylikAbonent}
+						title="Faol mijozlar uchun oylik tarif to‘lovlarini 'Kutilmoqda' sifatida chiqarish"
+						className='px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs flex items-center gap-1.5'
+					>
+						⚡ Oylik abonentlarni shakllantirish
+					</button>
+					<button
+						onClick={handleOpenAdd}
+						className='px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs'
+					>
+						{t.yangiKirim}
+					</button>
+				</div>
 			</div>
 
 			{/* Xulosa chiplari */}
@@ -177,8 +267,8 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 					<span className='font-bold'>{fmt(tolanganSumma)} UZS</span>
 				</div>
 				<div className='bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-3.5 py-1.5 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-300'>
-					{t.kutilmoqda}:{' '}
-					<span className='font-bold'>{fmt(kutilayotganSumma)} UZS</span>
+					{t.kutilmoqda} (Debitorlik):{' '}
+					<span className='font-bold'>{fmt(kutilayotganSumma)} UZS ⏳</span>
 				</div>
 			</div>
 
@@ -190,6 +280,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 							<tr>
 								<th className='px-4 py-3.5'>{t.id}</th>
 								<th className='px-4 py-3.5'>{t.kompaniya}</th>
+								<th className='px-4 py-3.5'>Davr (Oy)</th>
 								<th className='px-4 py-3.5'>{t.xizmatTuri}</th>
 								<th className='px-4 py-3.5'>{t.summa}</th>
 								<th className='px-4 py-3.5'>{t.sana}</th>
@@ -203,7 +294,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 							{filtered.length === 0 ? (
 								<tr>
 									<td
-										colSpan={9}
+										colSpan={10}
 										className='text-center py-8 text-slate-400 dark:text-slate-500'
 									>
 										—
@@ -221,7 +312,9 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 										<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
 											{k.kompaniya}
 										</td>
-										{/* Xizmat turi tarjimasi */}
+										<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
+											{parseOy(k.davr || k.sana)}
+										</td>
 										<td className='px-4 py-3'>
 											{t.kirimTurlari[k.tur as keyof typeof t.kirimTurlari] ||
 												k.tur}
@@ -235,12 +328,17 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 										<td className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs'>
 											{k.invoice || '—'}
 										</td>
-										{/* Holat tarjimasi */}
 										<td className='px-4 py-3'>
-											<StatusBadge status={k.holat} t={t} />
+											<button
+												onClick={() => handleStatusniAlmashtirish(k)}
+												title="Statusni o'zgartirish uchun bosing"
+												className='cursor-pointer'
+											>
+												<StatusBadge status={k.holat} t={t} />
+											</button>
 										</td>
 										<td
-											className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[180px] truncate'
+											className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[160px] truncate'
 											title={k.izoh || ''}
 										>
 											{k.izoh || '—'}
@@ -285,15 +383,42 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 						<select
 							required
 							value={mijozId}
-							onChange={e => setMijozId(e.target.value)}
+							onChange={e => handleMijozSelectChange(e.target.value)}
 							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
 						>
 							{mijozlar.map(m => (
 								<option key={m.id} value={m.id}>
-									{m.kompaniya} ({m.inn})
+									{m.kompaniya} (Tarif: {fmt(m.tarifSummasi || 0)} UZS)
 								</option>
 							))}
 						</select>
+					</div>
+
+					<div className='grid grid-cols-2 gap-3'>
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								Davr (Oy) *
+							</label>
+							<input
+								type='month'
+								required
+								value={davr}
+								onChange={e => setDavr(e.target.value)}
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
+							/>
+						</div>
+						<div>
+							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+								{t.sana} *
+							</label>
+							<input
+								type='date'
+								required
+								value={sana}
+								onChange={e => setSana(e.target.value)}
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
+							/>
+						</div>
 					</div>
 
 					<div className='grid grid-cols-2 gap-3'>
@@ -310,7 +435,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 								onChange={e =>
 									setSumma(e.target.value ? Number(e.target.value) : '')
 								}
-								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
+								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500 font-bold'
 							/>
 						</div>
 						<div>
@@ -334,7 +459,6 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 								{t.xizmatTuri}
 							</label>
-							{/* Modal ichidagi xizmat turlari tarjimasi */}
 							<select
 								value={tur}
 								onChange={e => setTur(e.target.value as KirimXizmatTuri)}
@@ -357,7 +481,6 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
 								{t.holat}
 							</label>
-							{/* Modal ichidagi holatlar tarjimasi */}
 							<select
 								value={holat}
 								onChange={e => setHolat(e.target.value as StatusTranzaksiya)}
@@ -370,29 +493,16 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 						</div>
 					</div>
 
-					<div className='grid grid-cols-2 gap-3'>
-						<div>
-							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.invoice}
-							</label>
-							<input
-								type='text'
-								value={invoice}
-								onChange={e => setInvoice(e.target.value)}
-								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
-							/>
-						</div>
-						<div>
-							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								{t.sana}
-							</label>
-							<input
-								type='text'
-								value={sana}
-								onChange={e => setSana(e.target.value)}
-								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
-							/>
-						</div>
+					<div>
+						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
+							{t.invoice}
+						</label>
+						<input
+							type='text'
+							value={invoice}
+							onChange={e => setInvoice(e.target.value)}
+							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
+						/>
 					</div>
 
 					<div>
