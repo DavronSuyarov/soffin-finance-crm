@@ -11,6 +11,8 @@ export const translations = {
 		kirim: 'Kirim',
 		chiqim: 'Chiqim',
 		maosh: 'Maosh',
+		soliqlar: 'Soliqlar nazorati',
+		kpiDavomat: 'KPI va Davomat',
 
 		// Dashboard kartochkalari
 		tushganKirim: 'Tushgan Kirim',
@@ -54,12 +56,33 @@ export const translations = {
 		berilgan: 'Berilgan',
 		qoldiq: 'Qoldiq (Qarz)',
 
-		// Yangi qo'shilgan abonent va billing maydonlari
+		// Abonent va billing
 		oylikTarif: 'Oylik Tarif',
 		tolovMuddati: 'To‘lov muddati',
 		debitorlikQarzi: 'Debitorlik Qarzi',
 		qarziYoq: 'Qarzi yo‘q',
 		harOyningSanasi: 'Har oyning {kun}-sanasi',
+
+		// Soliqlar monitoringi
+		soliqTuri: 'Soliq turi',
+		oxirgiMuddat: 'Topshirish muddati',
+		topshirilganSana: 'Topshirilgan sana',
+		masulBuxgalter: 'Mas’ul buxgalter',
+		yangiSoliqHisoboti: '+ Soliq hisoboti qo‘shish',
+		soliqShakllantirish: '⚡ Oylik soliqlarni shakllantirish',
+
+		// KPI va Davomat
+		bazaviyMaosh: 'Bazaviy maosh',
+		asosiyQism: 'Asosiy qism (85%)',
+		bonusFond: 'Bonus fondi (15%)',
+		kechikishlar: 'Kechikishlar (>09:30)',
+		kelmaganKunlar: 'Sababsiz kelmagan',
+		kechikkanHisobotlar: 'Kechikkan hisobotlar',
+		hisoblanganBonus: 'Hisoblangan bonus',
+		yakuniyMaosh: 'Jami to‘lanadigan maosh',
+		davomatKiritish: '+ Davomat qayd etish',
+		kelganVaqt: 'Kelgan vaqt',
+		kechikishDaqiqa: 'Kechikish (daqiqa)',
 
 		// Tugmalar va amallar
 		yangiMijoz: '+ Yangi mijoz',
@@ -76,6 +99,7 @@ export const translations = {
 		barchaHolatlar: 'Barcha holatlar',
 		barchaKategoriyalar: 'Barcha kategoriyalar',
 
+		// Holatlar
 		statuslar: {
 			Faol: 'Faol',
 			Kutilmoqda: 'Kutilmoqda',
@@ -84,6 +108,12 @@ export const translations = {
 			Bekor: 'Bekor',
 			"Ta'tilda": "Ta'tilda",
 			Qarzli: 'Qarzli',
+			Topshirildi: 'Topshirildi',
+			Kechikkan: 'Kechikkan',
+			Keldi: 'Keldi',
+			Kechikdi: 'Kechikdi',
+			Kelmadi: 'Kelmadi',
+			Sababli: 'Sababli',
 		},
 
 		// Chiqim kategoriyalari
@@ -105,6 +135,18 @@ export const translations = {
 			'Qayta tiklash': 'Qayta tiklash',
 			Boshqa: 'Boshqa',
 		},
+
+		// Soliq turlari
+		soliqTurlari: {
+			'JSHOD va Ijtimoiy soliq': 'JSHOD va Ijtimoiy soliq (15-sana)',
+			QQS: 'QQS (20-sana)',
+			'Aylanmadan olinadigan soliq': 'Aylanmadan olinadigan soliq (15-sana)',
+			'Foyda solig‘i': 'Foyda solig‘i',
+			'Mol-mulk va Yer solig‘i': 'Mol-mulk va Yer solig‘i',
+			'Suv resurslaridan foydalanish solig‘i': 'Suv solig‘i',
+			'Statistika hisoboti': 'Statistika hisoboti',
+			'Boshqa hisobot': 'Boshqa hisobot',
+		},
 	},
 	ru: {
 		// Navigatsiya
@@ -114,6 +156,8 @@ export const translations = {
 		kirim: 'Доходы',
 		chiqim: 'Расходы',
 		maosh: 'Зарплата',
+		soliqlar: 'Налоговый контроль',
+		kpiDavomat: 'KPI и Посещаемость',
 
 		// Dashboard kartochkalari
 		tushganKirim: 'Поступивший доход',
@@ -157,12 +201,33 @@ export const translations = {
 		berilgan: 'Выплачено',
 		qoldiq: 'Остаток (Долг)',
 
-		// Yangi qo'shilgan abonent va billing maydonlari
+		// Abonent va billing
 		oylikTarif: 'Ежемесячный тариф',
 		tolovMuddati: 'Срок оплаты',
 		debitorlikQarzi: 'Дебиторская задолженность',
 		qarziYoq: 'Нет долга',
 		harOyningSanasi: 'Каждое {kun}-е число',
+
+		// Soliqlar monitoringi
+		soliqTuri: 'Вид налога',
+		oxirgiMuddat: 'Крайний срок',
+		topshirilganSana: 'Дата сдачи',
+		masulBuxgalter: 'Ответственный бухгалтер',
+		yangiSoliqHisoboti: '+ Добавить налоговый отчет',
+		soliqShakllantirish: '⚡ Сформировать налоги месяца',
+
+		// KPI va Davomat
+		bazaviyMaosh: 'Базовый оклад',
+		asosiyQism: 'Гарантированная часть (85%)',
+		bonusFond: 'Бонусный фонд (15%)',
+		kechikishlar: 'Опоздания (>09:30)',
+		kelmaganKunlar: 'Неявки без причины',
+		kechikkanHisobotlar: 'Просроченные отчеты',
+		hisoblanganBonus: 'Итоговый бонус',
+		yakuniyMaosh: 'Зарплата к выплате',
+		davomatKiritish: '+ Отметить посещаемость',
+		kelganVaqt: 'Время прихода',
+		kechikishDaqiqa: 'Опоздание (мин)',
 
 		// Tugmalar va amallar
 		yangiMijoz: '+ Новый клиент',
@@ -179,6 +244,7 @@ export const translations = {
 		barchaHolatlar: 'Все статусы',
 		barchaKategoriyalar: 'Все категории',
 
+		// Holatlar
 		statuslar: {
 			Faol: 'Активный',
 			Kutilmoqda: 'Ожидается',
@@ -187,6 +253,12 @@ export const translations = {
 			Bekor: 'Отменено',
 			"Ta'tilda": 'В отпуске',
 			Qarzli: 'С долгом',
+			Topshirildi: 'Сдано',
+			Kechikkan: 'Просрочено',
+			Keldi: 'Пришел',
+			Kechikdi: 'Опоздал',
+			Kelmadi: 'Не пришел',
+			Sababli: 'Уважительная',
 		},
 
 		chiqimKategoriyalari: {
@@ -206,6 +278,17 @@ export const translations = {
 			'Qayta tiklash': 'Восстановление учета',
 			Boshqa: 'Другое',
 		},
+
+		soliqTurlari: {
+			'JSHOD va Ijtimoiy soliq': 'НДФЛ и Соц. налог (до 15-го)',
+			QQS: 'НДС (до 20-го)',
+			'Aylanmadan olinadigan soliq': 'Налог с оборота (до 15-го)',
+			'Foyda solig‘i': 'Налог на прибыль',
+			'Mol-mulk va Yer solig‘i': 'Налог на имущество и землю',
+			'Suv resurslaridan foydalanish solig‘i': 'Налог за воду',
+			'Statistika hisoboti': 'Статотчетность',
+			'Boshqa hisobot': 'Другой отчет',
+		},
 	},
 	en: {
 		// Navigatsiya
@@ -215,6 +298,8 @@ export const translations = {
 		kirim: 'Inflow',
 		chiqim: 'Expenses',
 		maosh: 'Payroll',
+		soliqlar: 'Tax Compliance',
+		kpiDavomat: 'KPI & Attendance',
 
 		// Dashboard kartochkalari
 		tushganKirim: 'Total Inflow',
@@ -258,12 +343,33 @@ export const translations = {
 		berilgan: 'Paid',
 		qoldiq: 'Remaining (Debt)',
 
-		// Yangi qo'shilgan abonent va billing maydonlari
+		// Abonent va billing
 		oylikTarif: 'Monthly Fee',
 		tolovMuddati: 'Due Date',
 		debitorlikQarzi: 'Accounts Receivable',
 		qarziYoq: 'No Debt',
 		harOyningSanasi: '{kun}th of every month',
+
+		// Soliqlar monitoringi
+		soliqTuri: 'Tax Type',
+		oxirgiMuddat: 'Filing Deadline',
+		topshirilganSana: 'Filed Date',
+		masulBuxgalter: 'Responsible Accountant',
+		yangiSoliqHisoboti: '+ Add Tax Report',
+		soliqShakllantirish: '⚡ Generate Monthly Tax Tasks',
+
+		// KPI va Davomat
+		bazaviyMaosh: 'Base Salary',
+		asosiyQism: 'Base Portion (85%)',
+		bonusFond: 'Bonus Fund (15%)',
+		kechikishlar: 'Late Arrivals (>09:30)',
+		kelmaganKunlar: 'Unexcused Absences',
+		kechikkanHisobotlar: 'Overdue Tax Reports',
+		hisoblanganBonus: 'Earned Bonus',
+		yakuniyMaosh: 'Net Payable Salary',
+		davomatKiritish: '+ Log Attendance',
+		kelganVaqt: 'Arrival Time',
+		kechikishDaqiqa: 'Delay (min)',
 
 		// Tugmalar va amallar
 		yangiMijoz: '+ New Client',
@@ -280,6 +386,7 @@ export const translations = {
 		barchaHolatlar: 'All statuses',
 		barchaKategoriyalar: 'All categories',
 
+		// Holatlar
 		statuslar: {
 			Faol: 'Active',
 			Kutilmoqda: 'Pending',
@@ -288,6 +395,12 @@ export const translations = {
 			Bekor: 'Cancelled',
 			"Ta'tilda": 'On leave',
 			Qarzli: 'Indebted',
+			Topshirildi: 'Filed',
+			Kechikkan: 'Overdue',
+			Keldi: 'Present',
+			Kechikdi: 'Late',
+			Kelmadi: 'Absent',
+			Sababli: 'Excused',
 		},
 
 		chiqimKategoriyalari: {
@@ -306,6 +419,17 @@ export const translations = {
 			Konsultatsiya: 'Consulting',
 			'Qayta tiklash': 'Bookkeeping recovery',
 			Boshqa: 'Other',
+		},
+
+		soliqTurlari: {
+			'JSHOD va Ijtimoiy soliq': 'Personal Income & Social Tax (by 15th)',
+			QQS: 'VAT (by 20th)',
+			'Aylanmadan olinadigan soliq': 'Turnover Tax (by 15th)',
+			'Foyda solig‘i': 'Corporate Profit Tax',
+			'Mol-mulk va Yer solig‘i': 'Property & Land Tax',
+			'Suv resurslaridan foydalanish solig‘i': 'Water Resource Tax',
+			'Statistika hisoboti': 'Statistical Report',
+			'Boshqa hisobot': 'Other Report',
 		},
 	},
 };

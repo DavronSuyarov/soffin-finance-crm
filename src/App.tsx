@@ -10,25 +10,39 @@ import { calculateDashboardSummary } from './finance.js';
 import { Language, translations } from './i18n.js';
 import {
 	mapChiqimToRow,
+	mapDavomatToRow,
 	mapHodimToRow,
 	mapKirimToRow,
 	mapMaoshToRow,
 	mapMijozToRow,
 	mapRowToChiqim,
+	mapRowToDavomat,
 	mapRowToHodim,
 	mapRowToKirim,
 	mapRowToMaosh,
 	mapRowToMijoz,
+	mapRowToSoliq,
+	mapSoliqToRow,
 } from './mappers.js';
-import { Chiqim, Hodim, Kirim, MaoshYozuvi, Mijoz } from './types.js';
+import {
+	Chiqim,
+	DavomatYozuvi,
+	Hodim,
+	Kirim,
+	MaoshYozuvi,
+	Mijoz,
+	SoliqHisoboti,
+} from './types.js';
 
 import { AuthLock } from './components/AuthLock';
 import { ChiqimTab } from './components/ChiqimTab';
 import { DashboardTab } from './components/DashboardTab';
 import { HodimlarTab } from './components/HodimlarTab';
 import { KirimTab } from './components/KirimTab';
+import { KpiTab } from './components/KpiTab';
 import { MaoshTab } from './components/MaoshTab';
 import { MijozlarTab } from './components/MijozlarTab';
+import { SoliqlarTab } from './components/SoliqlarTab';
 
 export default function App() {
 	const [lang, setLang] = useState<Language>('uz');
@@ -49,7 +63,14 @@ export default function App() {
 	}, [isDark]);
 
 	const [tab, setTab] = useState<
-		'dashboard' | 'mijozlar' | 'hodimlar' | 'kirim' | 'chiqim' | 'maosh'
+		| 'dashboard'
+		| 'mijozlar'
+		| 'soliqlar'
+		| 'hodimlar'
+		| 'kpiDavomat'
+		| 'kirim'
+		| 'chiqim'
+		| 'maosh'
 	>('dashboard');
 
 	const [mijozlar, setMijozlar] = useState<Mijoz[]>([]);
@@ -57,6 +78,8 @@ export default function App() {
 	const [kirimlar, setKirimlar] = useState<Kirim[]>([]);
 	const [chiqimlar, setChiqimlar] = useState<Chiqim[]>([]);
 	const [maoshlar, setMaoshlar] = useState<MaoshYozuvi[]>([]);
+	const [soliqlar, setSoliqlar] = useState<SoliqHisoboti[]>([]);
+	const [davomatlar, setDavomatlar] = useState<DavomatYozuvi[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 
 	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -69,22 +92,31 @@ export default function App() {
 	const loadData = async () => {
 		try {
 			setLoading(true);
-			const data = await fetchAllSheetData();
+			const res = await fetchAllSheetData();
+			// TypeScript xatosini yo'qotish uchun unknown orqali xavfsiz typecast qilamiz
+			const data =
+				(res as unknown as Record<string, string[][] | undefined>) || {};
 
-			if (data.Mijozlar && data.Mijozlar.length > 0) {
+			if (data.Mijozlar && Array.isArray(data.Mijozlar)) {
 				setMijozlar(data.Mijozlar.map(mapRowToMijoz));
 			}
-			if (data.Hodimlar && data.Hodimlar.length > 0) {
+			if (data.Hodimlar && Array.isArray(data.Hodimlar)) {
 				setHodimlar(data.Hodimlar.map(mapRowToHodim));
 			}
-			if (data.Kirim && data.Kirim.length > 0) {
+			if (data.Kirim && Array.isArray(data.Kirim)) {
 				setKirimlar(data.Kirim.map(mapRowToKirim));
 			}
-			if (data.Chiqim && data.Chiqim.length > 0) {
+			if (data.Chiqim && Array.isArray(data.Chiqim)) {
 				setChiqimlar(data.Chiqim.map(mapRowToChiqim));
 			}
-			if (data.Maosh && data.Maosh.length > 0) {
+			if (data.Maosh && Array.isArray(data.Maosh)) {
 				setMaoshlar(data.Maosh.map(mapRowToMaosh));
+			}
+			if (data.Soliqlar && Array.isArray(data.Soliqlar)) {
+				setSoliqlar(data.Soliqlar.map(mapRowToSoliq));
+			}
+			if (data.Davomat && Array.isArray(data.Davomat)) {
+				setDavomatlar(data.Davomat.map(mapRowToDavomat));
 			}
 		} catch (err) {
 			console.error('Yuklashda xatolik:', err);
@@ -99,7 +131,7 @@ export default function App() {
 		}
 	}, [isAuthenticated]);
 
-	// Dashboard uchun umumiy hisob-kitob (Debitorlik bilan birga)
+	// Dashboard umumiy statistikasi (Soliqlar monitoringi bilan birga)
 	const dashboardSummary = useMemo(() => {
 		return calculateDashboardSummary(
 			mijozlar,
@@ -107,79 +139,102 @@ export default function App() {
 			kirimlar,
 			chiqimlar,
 			maoshlar,
+			soliqlar,
 		);
-	}, [mijozlar, hodimlar, kirimlar, chiqimlar, maoshlar]);
+	}, [mijozlar, hodimlar, kirimlar, chiqimlar, maoshlar, soliqlar]);
 
-	// --- CRUD Funksiyalari ---
-
-	// Mijozlar
+	// --- CRUD: Mijozlar ---
 	const handleAddMijoz = (yangi: Mijoz) => {
 		setMijozlar(prev => [yangi, ...prev]);
-		addSheetRow('Mijozlar', mapMijozToRow(yangi));
+		addSheetRow('Mijozlar' as any, mapMijozToRow(yangi));
 	};
 	const handleUpdateMijoz = (tahrir: Mijoz) => {
 		setMijozlar(prev => prev.map(m => (m.id === tahrir.id ? tahrir : m)));
-		updateSheetRow('Mijozlar', tahrir.id, mapMijozToRow(tahrir));
+		updateSheetRow('Mijozlar' as any, tahrir.id, mapMijozToRow(tahrir));
 	};
 	const handleDeleteMijoz = (id: string) => {
 		setMijozlar(prev => prev.filter(m => m.id !== id));
-		deleteSheetRow('Mijozlar', id);
+		deleteSheetRow('Mijozlar' as any, id);
 	};
 
-	// Hodimlar
+	// --- CRUD: Soliqlar ---
+	const handleAddSoliq = (yangi: SoliqHisoboti) => {
+		setSoliqlar(prev => [yangi, ...prev]);
+		addSheetRow('Soliqlar' as any, mapSoliqToRow(yangi));
+	};
+	const handleUpdateSoliq = (tahrir: SoliqHisoboti) => {
+		setSoliqlar(prev => prev.map(s => (s.id === tahrir.id ? tahrir : s)));
+		updateSheetRow('Soliqlar' as any, tahrir.id, mapSoliqToRow(tahrir));
+	};
+	const handleDeleteSoliq = (id: string) => {
+		setSoliqlar(prev => prev.filter(s => s.id !== id));
+		deleteSheetRow('Soliqlar' as any, id);
+	};
+
+	// --- CRUD: Hodimlar ---
 	const handleAddHodim = (yangi: Hodim) => {
 		setHodimlar(prev => [yangi, ...prev]);
-		addSheetRow('Hodimlar', mapHodimToRow(yangi));
+		addSheetRow('Hodimlar' as any, mapHodimToRow(yangi));
 	};
 	const handleUpdateHodim = (tahrir: Hodim) => {
 		setHodimlar(prev => prev.map(h => (h.id === tahrir.id ? tahrir : h)));
-		updateSheetRow('Hodimlar', tahrir.id, mapHodimToRow(tahrir));
+		updateSheetRow('Hodimlar' as any, tahrir.id, mapHodimToRow(tahrir));
 	};
 	const handleDeleteHodim = (id: string) => {
 		setHodimlar(prev => prev.filter(h => h.id !== id));
-		deleteSheetRow('Hodimlar', id);
+		deleteSheetRow('Hodimlar' as any, id);
 	};
 
-	// Kirim
+	// --- CRUD: Davomat ---
+	const handleAddDavomat = (yangi: DavomatYozuvi) => {
+		setDavomatlar(prev => [yangi, ...prev]);
+		addSheetRow('Davomat' as any, mapDavomatToRow(yangi));
+	};
+	const handleDeleteDavomat = (id: string) => {
+		setDavomatlar(prev => prev.filter(d => d.id !== id));
+		deleteSheetRow('Davomat' as any, id);
+	};
+
+	// --- CRUD: Kirim ---
 	const handleAddKirim = (yangi: Kirim) => {
 		setKirimlar(prev => [yangi, ...prev]);
-		addSheetRow('Kirim', mapKirimToRow(yangi));
+		addSheetRow('Kirim' as any, mapKirimToRow(yangi));
 	};
 	const handleUpdateKirim = (tahrir: Kirim) => {
 		setKirimlar(prev => prev.map(k => (k.id === tahrir.id ? tahrir : k)));
-		updateSheetRow('Kirim', tahrir.id, mapKirimToRow(tahrir));
+		updateSheetRow('Kirim' as any, tahrir.id, mapKirimToRow(tahrir));
 	};
 	const handleDeleteKirim = (id: string) => {
 		setKirimlar(prev => prev.filter(k => k.id !== id));
-		deleteSheetRow('Kirim', id);
+		deleteSheetRow('Kirim' as any, id);
 	};
 
-	// Chiqim
+	// --- CRUD: Chiqim ---
 	const handleAddChiqim = (yangi: Chiqim) => {
 		setChiqimlar(prev => [yangi, ...prev]);
-		addSheetRow('Chiqim', mapChiqimToRow(yangi));
+		addSheetRow('Chiqim' as any, mapChiqimToRow(yangi));
 	};
 	const handleUpdateChiqim = (tahrir: Chiqim) => {
 		setChiqimlar(prev => prev.map(x => (x.id === tahrir.id ? tahrir : x)));
-		updateSheetRow('Chiqim', tahrir.id, mapChiqimToRow(tahrir));
+		updateSheetRow('Chiqim' as any, tahrir.id, mapChiqimToRow(tahrir));
 	};
 	const handleDeleteChiqim = (id: string) => {
 		setChiqimlar(prev => prev.filter(x => x.id !== id));
-		deleteSheetRow('Chiqim', id);
+		deleteSheetRow('Chiqim' as any, id);
 	};
 
-	// Maosh
+	// --- CRUD: Maosh ---
 	const handleAddMaosh = (yangi: MaoshYozuvi) => {
 		setMaoshlar(prev => [yangi, ...prev]);
-		addSheetRow('Maosh', mapMaoshToRow(yangi));
+		addSheetRow('Maosh' as any, mapMaoshToRow(yangi));
 	};
 	const handleUpdateMaosh = (tahrir: MaoshYozuvi) => {
 		setMaoshlar(prev => prev.map(m => (m.id === tahrir.id ? tahrir : m)));
-		updateSheetRow('Maosh', tahrir.id, mapMaoshToRow(tahrir));
+		updateSheetRow('Maosh' as any, tahrir.id, mapMaoshToRow(tahrir));
 	};
 	const handleDeleteMaosh = (id: string) => {
 		setMaoshlar(prev => prev.filter(m => m.id !== id));
-		deleteSheetRow('Maosh', id);
+		deleteSheetRow('Maosh' as any, id);
 	};
 
 	if (!isAuthenticated) {
@@ -238,7 +293,9 @@ export default function App() {
 								[
 									'dashboard',
 									'mijozlar',
+									'soliqlar',
 									'hodimlar',
+									'kpiDavomat',
 									'kirim',
 									'chiqim',
 									'maosh',
@@ -253,7 +310,13 @@ export default function App() {
 											: 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
 									}`}
 								>
-									{tKey === 'maosh' ? `💰 ${t[tKey]}` : t[tKey]}
+									{tKey === 'soliqlar'
+										? `📋 ${t[tKey]}`
+										: tKey === 'kpiDavomat'
+											? `🎯 ${t[tKey]}`
+											: tKey === 'maosh'
+												? `💰 ${t[tKey]}`
+												: t[tKey]}
 								</button>
 							))}
 						</div>
@@ -304,11 +367,22 @@ export default function App() {
 						{tab === 'mijozlar' && (
 							<MijozlarTab
 								mijozlar={mijozlar}
-								kirimlar={kirimlar} // Debitorlik qarzini real vaqtda hisoblash uchun
+								kirimlar={kirimlar}
 								t={t}
 								onAddMijoz={handleAddMijoz}
 								onUpdateMijoz={handleUpdateMijoz}
 								onDeleteMijoz={handleDeleteMijoz}
+							/>
+						)}
+						{tab === 'soliqlar' && (
+							<SoliqlarTab
+								soliqlar={soliqlar}
+								mijozlar={mijozlar}
+								hodimlar={hodimlar}
+								t={t}
+								onAddSoliq={handleAddSoliq}
+								onUpdateSoliq={handleUpdateSoliq}
+								onDeleteSoliq={handleDeleteSoliq}
 							/>
 						)}
 						{tab === 'hodimlar' && (
@@ -318,6 +392,16 @@ export default function App() {
 								onAddHodim={handleAddHodim}
 								onUpdateHodim={handleUpdateHodim}
 								onDeleteHodim={handleDeleteHodim}
+							/>
+						)}
+						{tab === 'kpiDavomat' && (
+							<KpiTab
+								hodimlar={hodimlar}
+								davomatlar={davomatlar}
+								soliqlar={soliqlar}
+								t={t}
+								onAddDavomat={handleAddDavomat}
+								onDeleteDavomat={handleDeleteDavomat}
 							/>
 						)}
 						{tab === 'kirim' && (

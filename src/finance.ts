@@ -3,11 +3,14 @@ import {
 	Chiqim,
 	ChiqimKategoriya,
 	DashboardXulosa,
+	DavomatYozuvi,
 	Hodim,
+	HodimKPIHisob,
 	Kirim,
 	MaoshYozuvi,
 	Mijoz,
 	MijozQarzdorlik,
+	SoliqHisoboti,
 } from './types.js';
 
 // Sanadan toza "YYYY-MM" formatini ajratish
@@ -70,12 +73,97 @@ export function hisoblaMijozlarQarzi(
 	});
 }
 
+/**
+ * Xodimning oylik KPI va 15% lik Bonus fondini hisoblash
+ */
+export function hisoblaHodimKPI(
+	hodim: Hodim,
+	davr: string, // "YYYY-MM"
+	davomatlar: DavomatYozuvi[],
+	soliqlar: SoliqHisoboti[],
+): HodimKPIHisob {
+	const bazaviyMaosh = Number(hodim.oylikMaosh) || 0;
+	const asosiyQism = Math.round(bazaviyMaosh * 0.85); // 85% kafolatlangan qism
+	const bonusFond = bazaviyMaosh - asosiyQism; // 15% maksimal bonus jamg'armasi
+
+	// 1. Davomat ko'rsatkichlari (shu oy bo'yicha)
+	const oyDavomat = davomatlar.filter(
+		d => d.hodimId === hodim.id && parseOy(d.sana) === davr,
+	);
+
+	const kechikishlarSoni = oyDavomat.filter(
+		d => d.holat === 'Kechikdi' || (d.kechikishDaqiqa && d.kechikishDaqiqa > 0),
+	).length;
+
+	const sababsizKelmadiKun = oyDavomat.filter(
+		d => d.holat === 'Kelmadi',
+	).length;
+
+	// Intizom bo'yicha bonusdan chegirma foizi:
+	// 1-2 marta kechikish ogohlantirish (0%), 3-4 marta (20%), 5+ marta (50%)
+	// Har bir sababsiz kelmagan kun uchun bonusdan 25% chegiriladi
+	let intizomChegirmaFoiz = 0;
+	if (kechikishlarSoni >= 5) {
+		intizomChegirmaFoiz += 50;
+	} else if (kechikishlarSoni >= 3) {
+		intizomChegirmaFoiz += 20;
+	}
+
+	intizomChegirmaFoiz += sababsizKelmadiKun * 25;
+	intizomChegirmaFoiz = Math.min(100, intizomChegirmaFoiz);
+
+	// 2. Soliq hisobotlari topshirish intizomi (shu oy bo'yicha mas'ul hisobotlar)
+	const masulSoliqlar = soliqlar.filter(
+		s =>
+			(s.masulHodimId === hodim.id || s.masulHodimIsm === hodim.ism) &&
+			parseOy(s.davr || s.oxirgiMuddat) === davr,
+	);
+
+	const jamiHisobotlar = masulSoliqlar.length;
+	const kechiktirilganHisobotlar = masulSoliqlar.filter(
+		s => s.holat === 'Kechikkan',
+	).length;
+
+	// Har bir kechiktirilgan soliq hisoboti uchun bonus fondidan 30% chegiriladi
+	let soliqIntizomiChegirmaFoiz = 0;
+	if (jamiHisobotlar > 0 && kechiktirilganHisobotlar > 0) {
+		soliqIntizomiChegirmaFoiz = Math.min(100, kechiktirilganHisobotlar * 30);
+	}
+
+	// 3. Jami chegirma foizi va qolgan haqiqiy bonus
+	const jamiChegirmaFoiz = Math.min(
+		100,
+		intizomChegirmaFoiz + soliqIntizomiChegirmaFoiz,
+	);
+	const bonusKoeffitsiyent = Math.max(0, (100 - jamiChegirmaFoiz) / 100);
+	const hisoblanganBonus = Math.round(bonusFond * bonusKoeffitsiyent);
+	const jamiHisoblanganMaosh = asosiyQism + hisoblanganBonus;
+
+	return {
+		hodimId: hodim.id,
+		ism: hodim.ism,
+		davr,
+		bazaviyMaosh,
+		asosiyQism,
+		bonusFond,
+		kechikishlarSoni,
+		sababsizKelmadiKun,
+		intizomChegirmaFoiz,
+		jamiHisobotlar,
+		kechiktirilganHisobotlar,
+		soliqIntizomiChegirmaFoiz,
+		hisoblanganBonus,
+		jamiHisoblanganMaosh,
+	};
+}
+
 export function calculateDashboardSummary(
 	mijozlar: Mijoz[],
 	hodimlar: Hodim[],
 	kirimlar: Kirim[],
 	chiqimlar: Chiqim[],
 	maoshlar: MaoshYozuvi[],
+	soliqlar: SoliqHisoboti[] = [],
 ): DashboardXulosa {
 	// 1. Mijozlar statistikasi va Debitorlik qarzi
 	const jamiMijozlar = mijozlar.length;
@@ -215,6 +303,14 @@ export function calculateDashboardSummary(
 			sofFoyda: oylarMap[davr].kirim - oylarMap[davr].jamiChiqim,
 		}));
 
+	// 7. Soliqlar monitoringi xulosasi
+	const kutilayotganSoliqlar = soliqlar.filter(
+		s => s.holat === 'Kutilmoqda',
+	).length;
+	const kechikkanSoliqlar = soliqlar.filter(
+		s => s.holat === 'Kechikkan',
+	).length;
+
 	return {
 		jamiKirim,
 		kutilayotganKirim,
@@ -232,5 +328,7 @@ export function calculateDashboardSummary(
 		faolMijozlar,
 		oylikTahlil,
 		chiqimKategoriyalari,
+		kutilayotganSoliqlar,
+		kechikkanSoliqlar,
 	};
 }

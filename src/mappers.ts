@@ -4,14 +4,19 @@ import {
 	Chiqim,
 	ChiqimKategoriya,
 	Currency,
+	DavomatHolati,
+	DavomatYozuvi,
 	Hodim,
 	Kirim,
 	KirimXizmatTuri,
 	MaoshYozuvi,
 	Mijoz,
+	SoliqHisoboti,
+	SoliqTuri,
 	StatusHodim,
 	StatusMaosh,
 	StatusMijoz,
+	StatusSoliqHisoboti,
 	StatusTranzaksiya,
 } from './types.js';
 
@@ -56,9 +61,9 @@ export function mapRowToMijoz(row: string[]): Mijoz {
 		status: (parseString(row[5]) || 'Faol') as StatusMijoz,
 		izoh: parseString(row[6]),
 		sana: parseString(row[7]) || new Date().toISOString().slice(0, 10),
-		// Yangi ustunlar agar jadval oxirida bo'lsa o'qiydi, bo'lmasa standart qiymat oladi
 		tarifSummasi: parseNumber(row[8]) || 0,
 		tolovKuni: parseNumber(row[9]) || 5,
+		masulHodimId: parseString(row[10]),
 	};
 }
 
@@ -78,22 +83,20 @@ export function mapRowToHodim(row: string[]): Hodim {
 
 export function mapRowToKirim(row: string[]): Kirim {
 	const sana = parseString(row[5]) || new Date().toISOString().slice(0, 10);
-
-	// Davr to'g'ridan-to'g'ri sananing o'zidan (YYYY-MM) hisoblanadi (jadvalni buzmaslik uchun)
 	const davr = parseDavr(sana);
 
 	return {
-		id: parseString(row[0]), // 0: ID
-		mijozId: parseString(row[1]), // 1: MijozId
-		kompaniya: parseString(row[2]), // 2: Kompaniya
-		summa: parseNumber(row[3]), // 3: Summa
-		valyuta: (parseString(row[4]) || 'UZS') as Currency, // 4: Valyuta
-		sana: sana, // 5: Sana
-		davr: davr, // Hisoblangan davr (YYYY-MM)
-		tur: (parseString(row[6]) || 'Buxgalteriya hisobi') as KirimXizmatTuri, // 6: Xizmat turi
-		holat: (parseString(row[7]) || 'Kutilmoqda') as StatusTranzaksiya, // 7: Holat (Tolangan/Kutilmoqda)
-		invoice: parseString(row[8]), // 8: Invoice
-		izoh: parseString(row[9]), // 9: Izoh
+		id: parseString(row[0]),
+		mijozId: parseString(row[1]),
+		kompaniya: parseString(row[2]),
+		summa: parseNumber(row[3]),
+		valyuta: (parseString(row[4]) || 'UZS') as Currency,
+		sana: sana,
+		davr: davr,
+		tur: (parseString(row[6]) || 'Buxgalteriya hisobi') as KirimXizmatTuri,
+		holat: (parseString(row[7]) || 'Kutilmoqda') as StatusTranzaksiya,
+		invoice: parseString(row[8]),
+		izoh: parseString(row[9]),
 	};
 }
 
@@ -108,6 +111,7 @@ export function mapRowToChiqim(row: string[]): Chiqim {
 		masulIsm: parseString(row[6]),
 		holat: (parseString(row[7]) || 'Tolangan') as StatusTranzaksiya,
 		izoh: parseString(row[8]),
+		masulHodimId: parseString(row[9]),
 	};
 }
 
@@ -125,7 +129,37 @@ export function mapRowToMaosh(row: string[]): MaoshYozuvi {
 		berilgan,
 		qoldiq,
 		holat: (qoldiq > 0 ? 'Qarzli' : 'Tolangan') as StatusMaosh,
+		kpiBonus: parseNumber(row[6]),
+		jarimaChegirma: parseNumber(row[7]),
 		izoh: parseString(row[8]),
+	};
+}
+
+export function mapRowToSoliq(row: string[]): SoliqHisoboti {
+	return {
+		id: parseString(row[0]),
+		mijozId: parseString(row[1]),
+		kompaniya: parseString(row[2]),
+		soliqTuri: (parseString(row[3]) || 'JSHOD va Ijtimoiy soliq') as SoliqTuri,
+		davr: parseString(row[4]) || parseDavr(row[5]),
+		oxirgiMuddat: parseString(row[5]),
+		topshirilganSana: parseString(row[6]),
+		holat: (parseString(row[7]) || 'Kutilmoqda') as StatusSoliqHisoboti,
+		masulHodimId: parseString(row[8]),
+		masulHodimIsm: parseString(row[9]),
+		izoh: parseString(row[10]),
+	};
+}
+
+export function mapRowToDavomat(row: string[]): DavomatYozuvi {
+	return {
+		id: parseString(row[0]),
+		hodimId: parseString(row[1]),
+		sana: parseString(row[2]) || new Date().toISOString().slice(0, 10),
+		kelganVaqt: parseString(row[3]),
+		holat: (parseString(row[4]) || 'Keldi') as DavomatHolati,
+		kechikishDaqiqa: parseNumber(row[5]),
+		izoh: parseString(row[6]),
 	};
 }
 
@@ -145,6 +179,7 @@ export function mapMijozToRow(m: Mijoz): any[] {
 		m.sana || '',
 		Number(m.tarifSummasi) || 0,
 		Number(m.tolovKuni) || 5,
+		m.masulHodimId || '',
 	];
 }
 
@@ -188,6 +223,7 @@ export function mapChiqimToRow(x: Chiqim): any[] {
 		x.masulIsm || '',
 		x.holat,
 		x.izoh || '',
+		x.masulHodimId || '',
 	];
 }
 
@@ -199,8 +235,36 @@ export function mapMaoshToRow(m: MaoshYozuvi): any[] {
 		m.davr,
 		Number(m.belgilangan) || 0,
 		Number(m.berilgan) || 0,
-		Number(m.qoldiq) || 0,
-		m.holat,
+		Number(m.kpiBonus) || 0,
+		Number(m.jarimaChegirma) || 0,
 		m.izoh || '',
+	];
+}
+
+export function mapSoliqToRow(s: SoliqHisoboti): any[] {
+	return [
+		s.id,
+		s.mijozId,
+		s.kompaniya,
+		s.soliqTuri,
+		s.davr,
+		s.oxirgiMuddat,
+		s.topshirilganSana || '',
+		s.holat,
+		s.masulHodimId || '',
+		s.masulHodimIsm || '',
+		s.izoh || '',
+	];
+}
+
+export function mapDavomatToRow(d: DavomatYozuvi): any[] {
+	return [
+		d.id,
+		d.hodimId,
+		d.sana,
+		d.kelganVaqt || '',
+		d.holat,
+		Number(d.kechikishDaqiqa) || 0,
+		d.izoh || '',
 	];
 }
