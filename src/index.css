@@ -2,26 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-	margin: 0;
-	padding: 0;
-	width: 100%;
-	min-height: 100%;
-	overflow-x: hidden;
+/* ============================================================
+   BUTUN TIZIM JADVALLARI UCHUN GLOBAL RESPONSIV QOIDA
+   ============================================================ */
+
+/* 1. Barcha jadvallar kataklari qat'iy 1 qator bo'lishi va so'zlar sinmasligi uchun */
+table {
+	width: 100% !important;
+	border-collapse: collapse;
 }
 
-#root {
-	width: 100%;
-	min-height: 100vh;
-	overflow-x: hidden;
+table th,
+table td {
+	white-space: nowrap !important; /* Matnlar hech qachon pastga sinib ketmaydi */
+	vertical-align: middle !important;
 }
 
-/* Navigatsiya skrollini yashirish */
-.no-scrollbar::-webkit-scrollbar {
-	display: none;
+/* 2. Barcha jadvallarni o'rab turgan konteyner erkin va silliq aylanishi uchun */
+.overflow-x-auto {
+	width: 100% !important;
+	overflow-x: auto !important;
+	-webkit-overflow-scrolling: touch;
 }
-.no-scrollbar {
-	-ms-overflow-style: none;
-	scrollbar-width: none;
+
+/* 3. Skroll yo'lagi (scrollbar) qulay va chiroyli bo'lishi uchun */
+.overflow-x-auto::-webkit-scrollbar {
+	height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+	background-color: #cbd5e1;
+	border-radius: 9999px;
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-thumb {
+	background-color: #334155;
 }
