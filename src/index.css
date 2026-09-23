@@ -42,3 +42,14 @@ table td {
 .dark .overflow-x-auto::-webkit-scrollbar-thumb {
 	background-color: #334155;
 }
+/* Jadvallar kataklarini professional ixcham formatga keltirish */
+table th {
+	padding: 10px 14px !important;
+	font-size: 0.75rem !important; /* 12px */
+	letter-spacing: 0.05em;
+}
+
+table td {
+	padding: 8px 14px !important;
+	font-size: 0.8125rem !important; /* 13px */
+}

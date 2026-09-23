@@ -247,7 +247,7 @@ export default function App() {
 		<div className='min-h-screen w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200'>
 			{/* Responsiv Navigatsiya (Kesilmaydigan tartibda) */}
 			<nav className='bg-slate-900 dark:bg-slate-950 text-white w-full sticky top-0 z-50 shadow-md border-b border-slate-800'>
-				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+				<div className='w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8'>
 					<div className='flex items-center justify-between h-16 gap-3'>
 						{/* 1. Logo */}
 						<div className='flex items-center gap-2 shrink-0'>
@@ -331,7 +331,7 @@ export default function App() {
 			</nav>
 
 			{/* Asosiy Ekran Konteyneri (To'liq xavfsiz padding bilan) */}
-			<main className='flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-hidden'>
+			<main className='flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 py-5'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
 						<div className='w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin'></div>
