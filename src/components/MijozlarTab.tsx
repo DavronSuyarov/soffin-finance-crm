@@ -39,8 +39,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	const [status, setStatus] = useState<StatusMijoz>('Faol');
 	const [izoh, setIzoh] = useState('');
 
-	// Import qilingan hisoblaMijozlarQarzi shu yerda ishlatiladi
-	// Har bir mijoz bo'yicha haqiqiy debitorlik qarzini aniqlaymiz
+	// Har bir mijoz bo'yicha haqiqiy debitorlik qarzini hisoblaymiz
 	const debitorlikMap = useMemo(() => {
 		const royxat = hisoblaMijozlarQarzi(mijozlar, kirimlar);
 		return new Map(royxat.map(d => [d.mijozId, d.qarzSummasi]));
@@ -49,9 +48,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 	const filtered = mijozlar
 		.filter(
 			m =>
-				m.kompaniya.toLowerCase().includes(search.toLowerCase()) ||
-				m.kontakt.toLowerCase().includes(search.toLowerCase()) ||
-				m.inn.includes(search),
+				(m.kompaniya || '').toLowerCase().includes(search.toLowerCase()) ||
+				(m.kontakt || '').toLowerCase().includes(search.toLowerCase()) ||
+				(m.inn || '').includes(search),
 		)
 		.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
@@ -121,6 +120,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 
 	return (
 		<div className='space-y-4'>
+			{/* Qidiruv va Yangi Mijoz tugmasi */}
 			<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors'>
 				<div className='relative flex-1 max-w-md'>
 					<input
@@ -139,6 +139,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				</button>
 			</div>
 
+			{/* Jadval */}
 			<div className='bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors'>
 				<div className='overflow-x-auto'>
 					<table className='w-full text-left text-sm text-slate-600 dark:text-slate-300'>
@@ -149,9 +150,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 								<th className='px-4 py-3.5'>{t.masulShaxs}</th>
 								<th className='px-4 py-3.5'>{t.telefon}</th>
 								<th className='px-4 py-3.5'>{t.inn}</th>
-								<th className='px-4 py-3.5'>Oylik Tarif</th>
-								<th className='px-4 py-3.5'>To‘lov muddati</th>
-								<th className='px-4 py-3.5'>Debitorlik Qarzi</th>
+								<th className='px-4 py-3.5'>{t.oylikTarif}</th>
+								<th className='px-4 py-3.5'>{t.tolovMuddati}</th>
+								<th className='px-4 py-3.5'>{t.debitorlikQarzi}</th>
 								<th className='px-4 py-3.5'>{t.holat}</th>
 								<th className='px-4 py-3.5'>{t.izoh}</th>
 								<th className='px-4 py-3.5 text-right'>{t.amallar}</th>
@@ -170,6 +171,10 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 							) : (
 								filtered.map(m => {
 									const qarz = debitorlikMap.get(m.id) || 0;
+									const sanaMatni = (
+										t.harOyningSanasi || 'Har oyning {kun}-sanasi'
+									).replace('{kun}', String(m.tolovKuni || 5));
+
 									return (
 										<tr
 											key={m.id}
@@ -192,7 +197,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 												{fmt(m.tarifSummasi || 0)} UZS
 											</td>
 											<td className='px-4 py-3 text-xs text-slate-500 dark:text-slate-400'>
-												Har oyning {m.tolovKuni || 5}-sanasi
+												{sanaMatni}
 											</td>
 											<td className='px-4 py-3'>
 												{qarz > 0 ? (
@@ -201,12 +206,12 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 													</span>
 												) : (
 													<span className='text-emerald-600 dark:text-emerald-400 text-xs font-semibold'>
-														Qarzi yo‘q ✓
+														{t.qarziYoq} ✓
 													</span>
 												)}
 											</td>
 											<td className='px-4 py-3'>
-												<StatusBadge status={m.status} />
+												<StatusBadge status={m.status} t={t} />
 											</td>
 											<td
 												className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[150px] truncate'
@@ -241,6 +246,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 				</div>
 			</div>
 
+			{/* Modal Forma */}
 			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
@@ -304,9 +310,9 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 								onChange={e => setStatus(e.target.value as StatusMijoz)}
 								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm bg-white focus:outline-none focus:border-sky-500'
 							>
-								<option value='Faol'>Faol</option>
-								<option value='Kutilmoqda'>Kutilmoqda</option>
-								<option value='Nofaol'>Nofaol</option>
+								<option value='Faol'>{t.statuslar['Faol']}</option>
+								<option value='Kutilmoqda'>{t.statuslar['Kutilmoqda']}</option>
+								<option value='Nofaol'>{t.statuslar['Nofaol']}</option>
 							</select>
 						</div>
 					</div>
@@ -314,7 +320,7 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								Oylik Tarif (Abonent to‘lovi) *
+								{t.oylikTarif} *
 							</label>
 							<input
 								type='number'
@@ -324,13 +330,13 @@ export const MijozlarTab: React.FC<MijozlarTabProps> = ({
 								onChange={e =>
 									setTarifSummasi(e.target.value ? Number(e.target.value) : '')
 								}
-								placeholder='Masalan: 3000000'
+								placeholder='3000000'
 								className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500 font-bold'
 							/>
 						</div>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								To‘lov sanasi (har oyning) *
+								{t.tolovMuddati} *
 							</label>
 							<input
 								type='number'

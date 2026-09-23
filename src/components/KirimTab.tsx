@@ -77,7 +77,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 
 		const faolMijozlar = mijozlar.filter(m => m.status === 'Faol');
 		if (faolMijozlar.length === 0) {
-			alert('Abonent shakllantirish uchun faol mijozlar topilmadi.');
+			alert(t.statuslar['Faol'] + ' — 0');
 			return;
 		}
 
@@ -101,20 +101,14 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 					tur: 'Buxgalteriya hisobi',
 					holat: 'Kutilmoqda',
 					invoice: `INV-${joriyOy.replace('-', '')}-${m.id}`,
-					izoh: `${joriyOy} oylik abonent to‘lovi`,
+					izoh: `${joriyOy} ${t.oylikTarif}`,
 				});
 				hisob++;
 			}
 		});
 
 		if (hisob > 0) {
-			alert(
-				`${hisob} ta mijoz uchun ${joriyOy} oyi to‘lovlari kutilmoqda sifatida shakllantirildi!`,
-			);
-		} else {
-			alert(
-				`Barcha faol mijozlar uchun ${joriyOy} oyi kvitansiyalari allaqachon mavjud.`,
-			);
+			alert(`${hisob} (${joriyOy})`);
 		}
 	};
 
@@ -240,10 +234,9 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 				<div className='flex items-center gap-2'>
 					<button
 						onClick={handleGeneratsiyaOylikAbonent}
-						title="Faol mijozlar uchun oylik tarif to‘lovlarini 'Kutilmoqda' sifatida chiqarish"
 						className='px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs flex items-center gap-1.5'
 					>
-						⚡ Oylik abonentlarni shakllantirish
+						{t.shakllantirishAbonent}
 					</button>
 					<button
 						onClick={handleOpenAdd}
@@ -257,7 +250,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 			{/* Xulosa chiplari */}
 			<div className='flex flex-wrap gap-2.5'>
 				<div className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300'>
-					Jami:{' '}
+					{t.summa}:{' '}
 					<span className='font-bold text-slate-900 dark:text-slate-100'>
 						{fmt(jamiSumma)} UZS
 					</span>
@@ -267,7 +260,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 					<span className='font-bold'>{fmt(tolanganSumma)} UZS</span>
 				</div>
 				<div className='bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-3.5 py-1.5 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-300'>
-					{t.kutilmoqda} (Debitorlik):{' '}
+					{t.kutilmoqda} ({t.debitorlik}):{' '}
 					<span className='font-bold'>{fmt(kutilayotganSumma)} UZS ⏳</span>
 				</div>
 			</div>
@@ -280,7 +273,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 							<tr>
 								<th className='px-4 py-3.5'>{t.id}</th>
 								<th className='px-4 py-3.5'>{t.kompaniya}</th>
-								<th className='px-4 py-3.5'>Davr (Oy)</th>
+								<th className='px-4 py-3.5'>{t.davr}</th>
 								<th className='px-4 py-3.5'>{t.xizmatTuri}</th>
 								<th className='px-4 py-3.5'>{t.summa}</th>
 								<th className='px-4 py-3.5'>{t.sana}</th>
@@ -331,7 +324,6 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 										<td className='px-4 py-3'>
 											<button
 												onClick={() => handleStatusniAlmashtirish(k)}
-												title="Statusni o'zgartirish uchun bosing"
 												className='cursor-pointer'
 											>
 												<StatusBadge status={k.holat} t={t} />
@@ -388,7 +380,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 						>
 							{mijozlar.map(m => (
 								<option key={m.id} value={m.id}>
-									{m.kompaniya} (Tarif: {fmt(m.tarifSummasi || 0)} UZS)
+									{m.kompaniya} ({t.oylikTarif}: {fmt(m.tarifSummasi || 0)} UZS)
 								</option>
 							))}
 						</select>
@@ -397,7 +389,7 @@ export const KirimTab: React.FC<KirimTabProps> = ({
 					<div className='grid grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-								Davr (Oy) *
+								{t.davr} *
 							</label>
 							<input
 								type='month'

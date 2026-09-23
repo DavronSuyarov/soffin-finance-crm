@@ -18,6 +18,8 @@ export const translations = {
 		sofFoyda: 'Sof Foyda',
 		zarar: 'Zarar',
 		xodimlargaQarz: 'Xodimlarga Qarz',
+		mijozlarQarzi: 'Mijozlar Qarzi',
+		debitorlik: 'Debitorlik',
 		kutilmoqda: 'Kutilmoqda',
 		ijobiyBalans: 'Ijobiy balans',
 		xarajatOshdi: 'Xarajat daromaddan oshdi',
@@ -52,12 +54,20 @@ export const translations = {
 		berilgan: 'Berilgan',
 		qoldiq: 'Qoldiq (Qarz)',
 
+		// Yangi qo'shilgan abonent va billing maydonlari
+		oylikTarif: 'Oylik Tarif',
+		tolovMuddati: 'To‘lov muddati',
+		debitorlikQarzi: 'Debitorlik Qarzi',
+		qarziYoq: 'Qarzi yo‘q',
+		harOyningSanasi: 'Har oyning {kun}-sanasi',
+
 		// Tugmalar va amallar
 		yangiMijoz: '+ Yangi mijoz',
 		yangiHodim: '+ Yangi hodim',
 		yangiKirim: '+ Yangi kirim',
 		yangiChiqim: '+ Yangi chiqim',
 		yangiMaosh: '+ Maosh to‘lovi yozish',
+		shakllantirishAbonent: '⚡ Oylik abonentlarni shakllantirish',
 		tahrirlash: 'Tahrirlash',
 		ochirish: 'O‘chirish',
 		saqlash: 'Saqlash',
@@ -111,6 +121,8 @@ export const translations = {
 		sofFoyda: 'Чистая прибыль',
 		zarar: 'Убыток',
 		xodimlargaQarz: 'Долг по зарплате',
+		mijozlarQarzi: 'Долг клиентов',
+		debitorlik: 'Дебиторка',
 		kutilmoqda: 'Ожидается',
 		ijobiyBalans: 'Положительный баланс',
 		xarajatOshdi: 'Расход превысил доход',
@@ -145,12 +157,20 @@ export const translations = {
 		berilgan: 'Выплачено',
 		qoldiq: 'Остаток (Долг)',
 
+		// Yangi qo'shilgan abonent va billing maydonlari
+		oylikTarif: 'Ежемесячный тариф',
+		tolovMuddati: 'Срок оплаты',
+		debitorlikQarzi: 'Дебиторская задолженность',
+		qarziYoq: 'Нет долга',
+		harOyningSanasi: 'Каждое {kun}-е число',
+
 		// Tugmalar va amallar
 		yangiMijoz: '+ Новый клиент',
 		yangiHodim: '+ Новый сотрудник',
 		yangiKirim: '+ Новый доход',
 		yangiChiqim: '+ Новый расход',
 		yangiMaosh: '+ Выплата зарплаты',
+		shakllantirishAbonent: '⚡ Сформировать абонплату',
 		tahrirlash: 'Редактировать',
 		ochirish: 'Удалить',
 		saqlash: 'Сохранить',
@@ -202,6 +222,8 @@ export const translations = {
 		sofFoyda: 'Net Profit',
 		zarar: 'Net Loss',
 		xodimlargaQarz: 'Payroll Debt',
+		mijozlarQarzi: 'Accounts Receivable',
+		debitorlik: 'A/R',
 		kutilmoqda: 'Pending',
 		ijobiyBalans: 'Positive balance',
 		xarajatOshdi: 'Expenses exceeded revenue',
@@ -236,12 +258,20 @@ export const translations = {
 		berilgan: 'Paid',
 		qoldiq: 'Remaining (Debt)',
 
+		// Yangi qo'shilgan abonent va billing maydonlari
+		oylikTarif: 'Monthly Fee',
+		tolovMuddati: 'Due Date',
+		debitorlikQarzi: 'Accounts Receivable',
+		qarziYoq: 'No Debt',
+		harOyningSanasi: '{kun}th of every month',
+
 		// Tugmalar va amallar
 		yangiMijoz: '+ New Client',
 		yangiHodim: '+ New Employee',
 		yangiKirim: '+ New Inflow',
 		yangiChiqim: '+ New Expense',
 		yangiMaosh: '+ Record Payroll',
+		shakllantirishAbonent: '⚡ Generate Monthly Invoices',
 		tahrirlash: 'Edit',
 		ochirish: 'Delete',
 		saqlash: 'Save',
@@ -249,6 +279,7 @@ export const translations = {
 		qidirish: 'Search...',
 		barchaHolatlar: 'All statuses',
 		barchaKategoriyalar: 'All categories',
+
 		statuslar: {
 			Faol: 'Active',
 			Kutilmoqda: 'Pending',

@@ -37,9 +37,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ summary, t }) => {
 					color='green'
 				/>
 				<StatCard
-					title='Mijozlar Qarzi'
+					title={t.mijozlarQarzi}
 					value={`${fmt(summary?.mijozlarQarzi ?? 0)} UZS`}
-					subtitle={`Debitorlik | Faol: ${summary?.faolMijozlar ?? 0} ta`}
+					subtitle={`${t.debitorlik} | ${t.statuslar['Faol']}: ${summary?.faolMijozlar ?? 0}`}
 					icon='⏳'
 					color='amber'
 				/>
@@ -88,7 +88,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ summary, t }) => {
 
 					{!summary?.oylikTahlil || summary.oylikTahlil.length === 0 ? (
 						<div className='h-48 flex items-center justify-center text-xs text-slate-400 dark:text-slate-500'>
-							Ma'lumotlar mavjud emas
+							—
 						</div>
 					) : (
 						<div className='flex items-end gap-3 sm:gap-6 h-52 pt-6 border-b border-slate-100 dark:border-slate-800'>
@@ -147,7 +147,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ summary, t }) => {
 						{!summary?.chiqimKategoriyalari ||
 						summary.chiqimKategoriyalari.length === 0 ? (
 							<div className='py-8 text-center text-xs text-slate-400 dark:text-slate-500'>
-								Chiqimlar qayd etilmagan
+								—
 							</div>
 						) : (
 							<div className='space-y-3.5'>
@@ -155,7 +155,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ summary, t }) => {
 									<div key={idx} className='space-y-1'>
 										<div className='flex justify-between text-xs font-medium'>
 											<span className='text-slate-600 dark:text-slate-300'>
-												{item.kategoriya}
+												{t.chiqimKategoriyalari[
+													item.kategoriya as keyof typeof t.chiqimKategoriyalari
+												] || item.kategoriya}
 											</span>
 											<span className='text-slate-800 dark:text-slate-100 font-bold'>
 												{fmt(item.summa)} UZS ({item.ulushFoiz}%)
