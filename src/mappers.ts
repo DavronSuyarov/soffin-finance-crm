@@ -33,17 +33,17 @@ function parseString(val: unknown): string {
 	return val ? String(val).trim() : '';
 }
 
-/** Sanadan YYYY-MM formatidagi oyni xavfsiz ajratadi */
-function parseDavr(val: unknown, sanaVal?: unknown): string {
-	const dStr = parseString(val);
-	if (/^\d{4}-\d{2}$/.test(dStr)) return dStr;
-	const fallback = parseString(sanaVal);
-	if (/^\d{4}-\d{2}/.test(fallback)) return fallback.slice(0, 7);
+/** Sanadan YYYY-MM formatidagi davrni xavfsiz ajratadi */
+function parseDavr(sanaVal: unknown): string {
+	const str = parseString(sanaVal);
+	if (/^\d{4}-\d{2}/.test(str)) {
+		return str.slice(0, 7);
+	}
 	return new Date().toISOString().slice(0, 7);
 }
 
 // ============================================================
-// MAPPERS (MASSIV -> TS OBYEKT)
+// MAPPERS (GOOGLE SHEETS QATORI -> TS OBYEKT)
 // ============================================================
 
 export function mapRowToMijoz(row: string[]): Mijoz {
@@ -53,11 +53,12 @@ export function mapRowToMijoz(row: string[]): Mijoz {
 		kontakt: parseString(row[2]),
 		telefon: parseString(row[3]),
 		inn: parseString(row[4]),
-		tarifSummasi: parseNumber(row[5]),
-		tolovKuni: parseNumber(row[6]) || 5,
-		status: (parseString(row[7]) || 'Faol') as StatusMijoz,
-		izoh: parseString(row[8]),
-		sana: parseString(row[9]) || new Date().toISOString().slice(0, 10),
+		status: (parseString(row[5]) || 'Faol') as StatusMijoz,
+		izoh: parseString(row[6]),
+		sana: parseString(row[7]) || new Date().toISOString().slice(0, 10),
+		// Yangi ustunlar agar jadval oxirida bo'lsa o'qiydi, bo'lmasa standart qiymat oladi
+		tarifSummasi: parseNumber(row[8]) || 0,
+		tolovKuni: parseNumber(row[9]) || 5,
 	};
 }
 
@@ -76,19 +77,23 @@ export function mapRowToHodim(row: string[]): Hodim {
 }
 
 export function mapRowToKirim(row: string[]): Kirim {
-	const sana = parseString(row[6]) || new Date().toISOString().slice(0, 10);
+	const sana = parseString(row[5]) || new Date().toISOString().slice(0, 10);
+
+	// Davr to'g'ridan-to'g'ri sananing o'zidan (YYYY-MM) hisoblanadi (jadvalni buzmaslik uchun)
+	const davr = parseDavr(sana);
+
 	return {
-		id: parseString(row[0]),
-		mijozId: parseString(row[1]),
-		kompaniya: parseString(row[2]),
-		davr: parseDavr(row[3], sana),
-		summa: parseNumber(row[4]),
-		valyuta: (parseString(row[5]) || 'UZS') as Currency,
-		sana,
-		tur: (parseString(row[7]) || 'Buxgalteriya hisobi') as KirimXizmatTuri,
-		holat: (parseString(row[8]) || 'Kutilmoqda') as StatusTranzaksiya,
-		invoice: parseString(row[9]),
-		izoh: parseString(row[10]),
+		id: parseString(row[0]), // 0: ID
+		mijozId: parseString(row[1]), // 1: MijozId
+		kompaniya: parseString(row[2]), // 2: Kompaniya
+		summa: parseNumber(row[3]), // 3: Summa
+		valyuta: (parseString(row[4]) || 'UZS') as Currency, // 4: Valyuta
+		sana: sana, // 5: Sana
+		davr: davr, // Hisoblangan davr (YYYY-MM)
+		tur: (parseString(row[6]) || 'Buxgalteriya hisobi') as KirimXizmatTuri, // 6: Xizmat turi
+		holat: (parseString(row[7]) || 'Kutilmoqda') as StatusTranzaksiya, // 7: Holat (Tolangan/Kutilmoqda)
+		invoice: parseString(row[8]), // 8: Invoice
+		izoh: parseString(row[9]), // 9: Izoh
 	};
 }
 
@@ -135,11 +140,11 @@ export function mapMijozToRow(m: Mijoz): any[] {
 		m.kontakt || '',
 		m.telefon || '',
 		m.inn || '',
-		Number(m.tarifSummasi) || 0,
-		Number(m.tolovKuni) || 5,
 		m.status,
 		m.izoh || '',
 		m.sana || '',
+		Number(m.tarifSummasi) || 0,
+		Number(m.tolovKuni) || 5,
 	];
 }
 
@@ -162,7 +167,6 @@ export function mapKirimToRow(k: Kirim): any[] {
 		k.id,
 		k.mijozId,
 		k.kompaniya,
-		k.davr || parseDavr(k.davr, k.sana),
 		Number(k.summa) || 0,
 		k.valyuta || 'UZS',
 		k.sana,
