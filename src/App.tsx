@@ -331,7 +331,7 @@ export default function App() {
 			</nav>
 
 			{/* Asosiy Ekran Konteyneri (To'liq xavfsiz padding bilan) */}
-			<main className='flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 py-5'>
+			<main className='flex-1 w-full max-w-[2000px] mx-auto px-3 sm:px-6 lg:px-8 py-5'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
 						<div className='w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin'></div>
