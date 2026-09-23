@@ -2,68 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   GLOBAL LAYOUT VA RESPONSIV SOZLAMALAR
-   ============================================================ */
-
-/* Butun sahifa chapga yoki o'ngga surilib ketmasligi uchun */
 html,
 body {
+	margin: 0;
+	padding: 0;
 	width: 100%;
 	min-height: 100%;
 	overflow-x: hidden;
-	margin: 0;
-	padding: 0;
-	-webkit-font-smoothing: antialiased;
 }
 
-/* Har qanday ichki konteyner o'z chegarasidan chiqib ketmasligi uchun */
 #root {
 	width: 100%;
 	min-height: 100vh;
 	overflow-x: hidden;
 }
 
-/* ============================================================
-   JADVALLAR UCHUN MAXSUS GORIZONTAL SKROLLBAR DIZAYNI
-   ============================================================ */
-
-/* Jadval ustunlari ko'payib ketganda ekranni buzmasdan silliq aylanishi uchun */
-.table-scroll-container {
-	width: 100%;
-	overflow-x: auto;
-	-webkit-overflow-scrolling: touch;
-}
-
-/* Skroll yo'lagini zamonaviy va ingichka ko'rinishga keltirish */
-.table-scroll-container::-webkit-scrollbar,
-.overflow-x-auto::-webkit-scrollbar {
-	height: 6px;
-}
-
-.table-scroll-container::-webkit-scrollbar-track,
-.overflow-x-auto::-webkit-scrollbar-track {
-	background: transparent;
-}
-
-.table-scroll-container::-webkit-scrollbar-thumb,
-.overflow-x-auto::-webkit-scrollbar-thumb {
-	background-color: #cbd5e1;
-	border-radius: 9999px;
-}
-
-.dark .table-scroll-container::-webkit-scrollbar-thumb,
-.dark .overflow-x-auto::-webkit-scrollbar-thumb {
-	background-color: #334155;
-}
-
-/* ============================================================
-   YORDAMCHI SINF: TEPA NAVIGATSIYA SKROLLINI YASHIRISH
-   ============================================================ */
+/* Navigatsiya skrollini yashirish */
 .no-scrollbar::-webkit-scrollbar {
 	display: none;
 }
-
 .no-scrollbar {
 	-ms-overflow-style: none;
 	scrollbar-width: none;
