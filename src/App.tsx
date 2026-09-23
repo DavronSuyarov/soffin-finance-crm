@@ -93,8 +93,11 @@ export default function App() {
 		try {
 			setLoading(true);
 			const res = await fetchAllSheetData();
-			const data =
-				(res as unknown as Record<string, string[][] | undefined>) || {};
+
+			// Apps Script to'g'ridan-to'g'ri obyekt yoki { data: ... } qaytarishini xavfsiz tekshiramiz
+			const rawObj = (res as any) || {};
+			const data: Record<string, string[][] | undefined> =
+				rawObj.data && typeof rawObj.data === 'object' ? rawObj.data : rawObj;
 
 			if (data.Mijozlar && Array.isArray(data.Mijozlar)) {
 				setMijozlar(data.Mijozlar.map(mapRowToMijoz));
@@ -242,28 +245,27 @@ export default function App() {
 
 	return (
 		<div className='min-h-screen w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200'>
-			{/* Responsiv Navigatsiya */}
+			{/* Responsiv Navigatsiya (Kesilmaydigan tartibda) */}
 			<nav className='bg-slate-900 dark:bg-slate-950 text-white w-full sticky top-0 z-50 shadow-md border-b border-slate-800'>
-				<div className='max-w-7xl mx-auto px-3 sm:px-6 lg:px-8'>
-					<div className='flex items-center justify-between h-14 md:h-16 gap-3'>
-						{/* Logo va status */}
+				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+					<div className='flex items-center justify-between h-16 gap-3'>
+						{/* 1. Logo */}
 						<div className='flex items-center gap-2 shrink-0'>
-							<span className='text-sky-400 font-extrabold text-sm sm:text-base md:text-lg tracking-wider'>
+							<span className='text-sky-400 font-extrabold text-base md:text-lg tracking-wider'>
 								💼 SOFFIN_PAY
 							</span>
-							<span className='hidden sm:inline-block text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded'>
+							<span className='hidden sm:inline-block text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700'>
 								CRM
 							</span>
 							{loading && (
-								<span className='text-xs text-amber-400 animate-pulse flex items-center gap-1 ml-1'>
-									🔄{' '}
-									<span className='hidden md:inline'>Sinxronlanmoqda...</span>
+								<span className='text-xs text-amber-400 animate-pulse ml-1'>
+									🔄
 								</span>
 							)}
 						</div>
 
-						{/* O'rtadagi tab tugmalari (Gorizontal silliq aylanadi) */}
-						<div className='flex items-center gap-1 overflow-x-auto no-scrollbar py-1 flex-1 max-w-2xl justify-start sm:justify-center'>
+						{/* 2. Markaziy Tablar (Kesilmaydi, qisilmaydi, sig'masa o'z ichida aylanadi) */}
+						<div className='flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 flex-1 min-w-0 px-2 justify-start'>
 							{(
 								[
 									'dashboard',
@@ -279,31 +281,33 @@ export default function App() {
 								<button
 									key={tKey}
 									onClick={() => setTab(tKey)}
-									className={`px-2.5 py-1.5 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
+									className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap transition-colors shrink-0 ${
 										tab === tKey
 											? 'bg-sky-600 text-white shadow-xs'
-											: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+											: 'text-slate-300 hover:text-white hover:bg-slate-800'
 									}`}
 								>
-									{tKey === 'soliqlar'
-										? `📋 ${t[tKey]}`
-										: tKey === 'kpiDavomat'
-											? `🎯 ${t[tKey]}`
-											: tKey === 'maosh'
-												? `💰 ${t[tKey]}`
-												: t[tKey]}
+									{tKey === 'dashboard'
+										? `🏠 ${t[tKey] || 'Bosh sahifa'}`
+										: tKey === 'soliqlar'
+											? `📋 ${t[tKey]}`
+											: tKey === 'kpiDavomat'
+												? `🎯 ${t[tKey]}`
+												: tKey === 'maosh'
+													? `💰 ${t[tKey]}`
+													: t[tKey]}
 								</button>
 							))}
 						</div>
 
-						{/* Til va Qorong'i/Yorug' rejim tanlagichlari */}
+						{/* 3. O'ng tomon: Til va Mavzu */}
 						<div className='flex items-center gap-2 shrink-0'>
 							<div className='flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs'>
 								{(['uz', 'ru', 'en'] as const).map(langKey => (
 									<button
 										key={langKey}
 										onClick={() => setLang(langKey)}
-										className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded uppercase font-semibold transition-all ${
+										className={`px-2 py-1 rounded uppercase font-semibold transition-all ${
 											lang === langKey
 												? 'bg-sky-600 text-white'
 												: 'text-slate-400 hover:text-slate-200'
@@ -326,8 +330,8 @@ export default function App() {
 				</div>
 			</nav>
 
-			{/* Asosiy Ekran Konteyneri */}
-			<main className='flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-hidden'>
+			{/* Asosiy Ekran Konteyneri (To'liq xavfsiz padding bilan) */}
+			<main className='flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 overflow-hidden'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
 						<div className='w-8 h-8 border-4 border-sky-600 border-t-transparent rounded-full animate-spin'></div>
