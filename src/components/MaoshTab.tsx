@@ -1,5 +1,6 @@
 // src/components/MaoshTab.tsx
 import React, { useMemo, useState } from 'react';
+import { hisoblaHodimlarBalansi, parseOy } from '../finance';
 import { translations } from '../i18n.js';
 import { Hodim, MaoshYozuvi, StatusMaosh } from '../types.js';
 import { generateNextId, validateAmount } from '../utils';
@@ -17,20 +18,6 @@ export interface MaoshTabProps {
 
 const fmt = (n: number) => (Number(n) || 0).toLocaleString('uz-UZ');
 
-const formatOy = (dateStr: string): string => {
-	if (!dateStr) return '—';
-	try {
-		if (/^\d{4}-\d{2}$/.test(dateStr.trim())) return dateStr.trim();
-		const d = new Date(dateStr);
-		if (isNaN(d.getTime())) return dateStr;
-		const yil = d.getFullYear();
-		const oy = String(d.getMonth() + 1).padStart(2, '0');
-		return `${yil}-${oy}`;
-	} catch {
-		return dateStr;
-	}
-};
-
 export const MaoshTab: React.FC<MaoshTabProps> = ({
 	maoshlar,
 	hodimlar,
@@ -44,7 +31,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const [editingId, setEditingId] = useState<string | null>(null);
 
 	const [hodimId, setHodimId] = useState('');
-	const [davr, setDavr] = useState('2026-07');
+	const [davr, setDavr] = useState(parseOy(new Date().toISOString()));
 	const [berilgan, setBerilgan] = useState<number | ''>('');
 	const [izoh, setIzoh] = useState('');
 
@@ -53,12 +40,12 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 			.filter(
 				m =>
 					m.ism.toLowerCase().includes(search.toLowerCase()) ||
-					m.davr.includes(search),
+					parseOy(m.davr).includes(search),
 			)
 			.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 	}, [maoshlar, search]);
 
-	// Xodimning haqiqiy shtat oyligini topish
+	// Xodimning haqiqiy shtat maoshini topish
 	const getHodimOylik = (hId: string, hIsm?: string) => {
 		const h = hodimlar.find(
 			item => item.id === hId || (hIsm && item.ism === hIsm),
@@ -66,77 +53,87 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 		return h ? Number(h.oylikMaosh) || 0 : 0;
 	};
 
-	// Tanlangan oy va xodim uchun qoldiq qarzni aniqlash
-	const getHodimDavrQoldiq = (
-		hId: string,
-		oyStr: string,
-		excludeId?: string | null,
-	) => {
+	// Butun tizimdagi xodimlarning zanjirli oylik balansi (avanslar bilan)
+	const umumiyBalansMap = useMemo(() => {
+		return hisoblaHodimlarBalansi(hodimlar, maoshlar);
+	}, [hodimlar, maoshlar]);
+
+	// Tanlangan oy va xodim uchun haqiqiy qoldiq qarz yoki mavjud avansni hisoblash
+	const getHodimDavrHisob = (hId: string, oyStr: string) => {
+		const normOy = parseOy(oyStr);
+		const kalit = `${hId}_${normOy}`;
+		const balans = umumiyBalansMap.get(kalit);
+
+		if (balans) {
+			return {
+				qoldiqQarz: balans.qoldiqQarz,
+				avans: balans.yakuniyAvans,
+				boshlangichAvans: balans.boshlangichAvans,
+			};
+		}
+
+		// Agar bu oyda hali yozuv bo'lmasa, o'tgan oydagi yakuniy balansni aniqlaymiz
+		const oldingiOylar = Array.from(umumiyBalansMap.values())
+			.filter(item => item.hodimId === hId && item.davr < normOy)
+			.sort((a, b) => a.davr.localeCompare(b.davr));
+
+		let otganOydanBalans = 0;
+		if (oldingiOylar.length > 0) {
+			const oxirgi = oldingiOylar[oldingiOylar.length - 1];
+			otganOydanBalans = oxirgi.yakuniyAvans - oxirgi.qoldiqQarz;
+		}
+
 		const shtatMaosh = getHodimOylik(hId);
-		const normOy = formatOy(oyStr);
+		const sofQarz = Math.max(0, shtatMaosh - otganOydanBalans);
 
-		const oldBerilgan = maoshlar
-			.filter(
-				m =>
-					(m.hodimId === hId ||
-						m.ism === hodimlar.find(x => x.id === hId)?.ism) &&
-					formatOy(m.davr) === normOy &&
-					m.id !== excludeId,
-			)
-			.reduce((sum, m) => sum + (Number(m.berilgan) || 0), 0);
-
-		return Math.max(0, shtatMaosh - oldBerilgan);
+		return {
+			qoldiqQarz: sofQarz,
+			avans: otganOydanBalans > shtatMaosh ? otganOydanBalans - shtatMaosh : 0,
+			boshlangichAvans: otganOydanBalans,
+		};
 	};
 
 	// Tepadagi kartochkalar va jadval qatorlari hisob-kitobi
 	const { jamiBelgilangan, jamiBerilgan, jamiQarz, hisoblanganQatorlar } =
 		useMemo(() => {
-			// 1. Har bir xodim va oy bo'yicha berilgan to'lovlar yig'indisi
-			const davrBerilganMap = new Map<string, number>();
-			const davrBelgilanganMap = new Map<string, number>();
-
-			filtered.forEach(m => {
-				const shtat = getHodimOylik(m.hodimId, m.ism) || 6000000;
-				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
-
-				davrBerilganMap.set(
-					kalit,
-					(davrBerilganMap.get(kalit) || 0) + (Number(m.berilgan) || 0),
-				);
-
-				// Belgilangan shtat maoshini har bir oy uchun faqat 1 marta olamiz
-				if (!davrBelgilanganMap.has(kalit)) {
-					davrBelgilanganMap.set(kalit, shtat);
-				}
-			});
-
-			// 2. Har bir qator uchun holat va qoldiq
+			// Har bir qator uchun kumulyativ oylik balansni biriktirish
 			const hisoblangan = filtered.map(m => {
-				const shtat = getHodimOylik(m.hodimId, m.ism) || 6000000;
-				const kalit = `${m.hodimId || m.ism}_${formatOy(m.davr)}`;
-				const jamiOyBerilgan = davrBerilganMap.get(kalit) || 0;
-				const haqiqiyQoldiq = Math.max(0, shtat - jamiOyBerilgan);
+				const normOy = parseOy(m.davr);
+				const kalit = `${m.hodimId}_${normOy}`;
+				const oyBalans = umumiyBalansMap.get(kalit);
+
+				const shtat =
+					getHodimOylik(m.hodimId, m.ism) || Number(m.belgilangan) || 0;
+				const haqiqiyQoldiq = oyBalans ? oyBalans.qoldiqQarz : 0;
+				const yakuniyAvans = oyBalans ? oyBalans.yakuniyAvans : 0;
 				const holat: StatusMaosh = haqiqiyQoldiq > 0 ? 'Qarzli' : 'Tolangan';
 
 				return {
 					...m,
 					haqiqiyBelgilangan: shtat,
 					haqiqiyQoldiq,
+					yakuniyAvans,
 					haqiqiyHolat: holat,
 				};
 			});
 
-			// 3. Jami qarz har bir oy bo'yicha alohida hisoblanadi (oylar aralashib ketmasligi uchun)
-			let hisoblanganJamiQarz = 0;
-			davrBelgilanganMap.forEach((shtat, kalit) => {
-				const berilgan = davrBerilganMap.get(kalit) || 0;
-				hisoblanganJamiQarz += Math.max(0, shtat - berilgan);
+			// Faqat qidiruvda / filtrda qatnashayotgan oylarning umumiy summasi
+			const unikalOylar = new Set<string>();
+			hisoblangan.forEach(m => {
+				unikalOylar.add(`${m.hodimId}_${parseOy(m.davr)}`);
 			});
 
-			const jamiBelg = Array.from(davrBelgilanganMap.values()).reduce(
-				(a, b) => a + b,
-				0,
-			);
+			let jamiBelg = 0;
+			let jamiHaqiqiyQarz = 0;
+
+			unikalOylar.forEach(kalit => {
+				const b = umumiyBalansMap.get(kalit);
+				if (b) {
+					jamiBelg += b.belgilangan;
+					jamiHaqiqiyQarz += b.qoldiqQarz;
+				}
+			});
+
 			const jamiBer = filtered.reduce(
 				(acc, m) => acc + (Number(m.berilgan) || 0),
 				0,
@@ -145,21 +142,22 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 			return {
 				jamiBelgilangan: jamiBelg,
 				jamiBerilgan: jamiBer,
-				jamiQarz: hisoblanganJamiQarz,
+				jamiQarz: jamiHaqiqiyQarz,
 				hisoblanganQatorlar: hisoblangan,
 			};
-		}, [filtered, hodimlar]);
+		}, [filtered, hodimlar, umumiyBalansMap]);
 
 	const handleOpenAdd = () => {
 		setEditingId(null);
 		const birinchi = hodimlar.length ? hodimlar[0] : null;
 		const initialId = birinchi ? birinchi.id : '';
-		const initialOy = '2026-07';
+		const initialOy = parseOy(new Date().toISOString());
 
 		setHodimId(initialId);
 		setDavr(initialOy);
-		const qarz = getHodimDavrQoldiq(initialId, initialOy);
-		setBerilgan(qarz > 0 ? qarz : '');
+
+		const hisob = getHodimDavrHisob(initialId, initialOy);
+		setBerilgan(hisob.qoldiqQarz > 0 ? hisob.qoldiqQarz : '');
 		setIzoh('');
 		setIsModalOpen(true);
 	};
@@ -167,7 +165,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const handleOpenEdit = (m: MaoshYozuvi) => {
 		setEditingId(m.id);
 		setHodimId(m.hodimId);
-		setDavr(formatOy(m.davr));
+		setDavr(parseOy(m.davr));
 		setBerilgan(m.berilgan);
 		setIzoh(m.izoh || '');
 		setIsModalOpen(true);
@@ -176,16 +174,16 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const handleHodimChange = (newHodimId: string) => {
 		setHodimId(newHodimId);
 		if (!editingId) {
-			const qarz = getHodimDavrQoldiq(newHodimId, davr);
-			setBerilgan(qarz > 0 ? qarz : '');
+			const hisob = getHodimDavrHisob(newHodimId, davr);
+			setBerilgan(hisob.qoldiqQarz > 0 ? hisob.qoldiqQarz : '');
 		}
 	};
 
 	const handleDavrChange = (newDavr: string) => {
 		setDavr(newDavr);
 		if (!editingId && hodimId) {
-			const qarz = getHodimDavrQoldiq(hodimId, newDavr);
-			setBerilgan(qarz > 0 ? qarz : '');
+			const hisob = getHodimDavrHisob(hodimId, newDavr);
+			setBerilgan(hisob.qoldiqQarz > 0 ? hisob.qoldiqQarz : '');
 		}
 	};
 
@@ -209,7 +207,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				id: editingId,
 				hodimId,
 				ism,
-				davr: formatOy(davr),
+				davr: parseOy(davr),
 				belgilangan: shtatMaosh,
 				berilgan: gSumma,
 				qoldiq: 0,
@@ -221,7 +219,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				id: generateNextId('MSH', maoshlar),
 				hodimId,
 				ism,
-				davr: formatOy(davr),
+				davr: parseOy(davr),
 				belgilangan: shtatMaosh,
 				berilgan: gSumma,
 				qoldiq: 0,
@@ -232,7 +230,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 		setIsModalOpen(false);
 	};
 
-	const joriyQoldiqQarz = getHodimDavrQoldiq(hodimId, davr, editingId);
+	const modalHisob = getHodimDavrHisob(hodimId, davr);
 
 	return (
 		<div className='space-y-4'>
@@ -319,8 +317,8 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 										<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
 											{m.ism}
 										</td>
-										<td className='px-4 py-3 text-slate-500 dark:text-slate-400'>
-											{formatOy(m.davr)}
+										<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
+											{parseOy(m.davr)}
 										</td>
 										<td className='px-4 py-3'>
 											{fmt(m.haqiqiyBelgilangan)} UZS
@@ -328,11 +326,21 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 										<td className='px-4 py-3 font-medium text-emerald-600 dark:text-emerald-400'>
 											{fmt(m.berilgan)} UZS
 										</td>
-										<td className='px-4 py-3 font-bold text-rose-600 dark:text-rose-400'>
-											{fmt(m.haqiqiyQoldiq)} UZS
+										<td className='px-4 py-3 font-bold'>
+											{m.haqiqiyQoldiq > 0 ? (
+												<span className='text-rose-600 dark:text-rose-400'>
+													{fmt(m.haqiqiyQoldiq)} UZS
+												</span>
+											) : m.yakuniyAvans > 0 ? (
+												<span className='text-sky-600 dark:text-sky-400 font-semibold text-xs bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded'>
+													Avans: +{fmt(m.yakuniyAvans)} UZS
+												</span>
+											) : (
+												<span className='text-slate-500'>0 UZS</span>
+											)}
 										</td>
 										<td className='px-4 py-3'>
-											<StatusBadge status={m.haqiqiyHolat} />
+											<StatusBadge status={m.haqiqiyHolat} t={t} />
 										</td>
 										<td
 											className='px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[180px] truncate'
@@ -403,13 +411,22 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 						/>
 					</div>
 
-					<div className='p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs flex justify-between items-center'>
-						<span className='text-slate-600 dark:text-slate-300'>
-							Oy bo‘yicha to‘lanishi kerak qoldiq:
-						</span>
-						<span className='font-bold text-slate-900 dark:text-slate-100 text-sm'>
-							{fmt(joriyQoldiqQarz)} UZS
-						</span>
+					{/* O'tgan oydan o'tgan avans yoki qarz ko'rsatkichi */}
+					<div className='p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-1.5'>
+						{modalHisob.boshlangichAvans > 0 && (
+							<div className='flex justify-between items-center text-sky-600 dark:text-sky-400 font-semibold'>
+								<span>O‘tgan oydan o‘tgan avans:</span>
+								<span>+{fmt(modalHisob.boshlangichAvans)} UZS</span>
+							</div>
+						)}
+						<div className='flex justify-between items-center'>
+							<span className='text-slate-600 dark:text-slate-300'>
+								Oy bo‘yicha to‘lanishi kerak qoldiq:
+							</span>
+							<span className='font-bold text-slate-900 dark:text-slate-100 text-sm'>
+								{fmt(modalHisob.qoldiqQarz)} UZS
+							</span>
+						</div>
 					</div>
 
 					<div>
