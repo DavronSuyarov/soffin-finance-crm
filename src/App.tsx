@@ -133,7 +133,7 @@ export default function App() {
 		}
 	}, [isAuthenticated]);
 
-	// Dashboard umumiy statistikasi
+	// Dashboard umumiy statistikasi (KPI va Davomat ta'siri bilan)
 	const dashboardSummary = useMemo(() => {
 		return calculateDashboardSummary(
 			mijozlar,
@@ -142,8 +142,9 @@ export default function App() {
 			chiqimlar,
 			maoshlar,
 			soliqlar,
+			davomatlar,
 		);
-	}, [mijozlar, hodimlar, kirimlar, chiqimlar, maoshlar, soliqlar]);
+	}, [mijozlar, hodimlar, kirimlar, chiqimlar, maoshlar, soliqlar, davomatlar]);
 
 	// --- CRUD: Mijozlar ---
 	const handleAddMijoz = (yangi: Mijoz) => {
@@ -245,7 +246,7 @@ export default function App() {
 
 	return (
 		<div className='min-h-screen w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200'>
-			{/* Responsiv Navigatsiya (Kesilmaydigan tartibda) */}
+			{/* Responsiv Navigatsiya */}
 			<nav className='bg-slate-900 dark:bg-slate-950 text-white w-full sticky top-0 z-50 shadow-md border-b border-slate-800'>
 				<div className='w-full px-4 sm:px-6 lg:px-8'>
 					<div className='flex items-center justify-between h-16 gap-3'>
@@ -264,7 +265,7 @@ export default function App() {
 							)}
 						</div>
 
-						{/* 2. Markaziy Tablar (Kesilmaydi, qisilmaydi, sig'masa o'z ichida aylanadi) */}
+						{/* 2. Markaziy Tablar */}
 						<div className='flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 flex-1 min-w-0 px-2 justify-start'>
 							{(
 								[
@@ -330,7 +331,7 @@ export default function App() {
 				</div>
 			</nav>
 
-			{/* Asosiy Ekran Konteyneri (To'liq xavfsiz padding bilan) */}
+			{/* Asosiy Ekran Konteyneri */}
 			<main className='flex-1 w-full px-3 sm:px-6 py-4 overflow-x-hidden'>
 				{loading && mijozlar.length === 0 ? (
 					<div className='flex flex-col items-center justify-center py-24 space-y-3'>
@@ -409,6 +410,8 @@ export default function App() {
 							<MaoshTab
 								maoshlar={maoshlar}
 								hodimlar={hodimlar}
+								davomatlar={davomatlar}
+								soliqlar={soliqlar}
 								t={t}
 								onAddMaosh={handleAddMaosh}
 								onUpdateMaosh={handleUpdateMaosh}

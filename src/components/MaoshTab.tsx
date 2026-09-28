@@ -2,7 +2,13 @@
 import React, { useMemo, useState } from 'react';
 import { hisoblaHodimlarBalansi, parseOy } from '../finance';
 import { translations } from '../i18n.js';
-import { Hodim, MaoshYozuvi, StatusMaosh } from '../types.js';
+import {
+	DavomatYozuvi,
+	Hodim,
+	MaoshYozuvi,
+	SoliqHisoboti,
+	StatusMaosh,
+} from '../types.js';
 import { generateNextId, validateAmount } from '../utils';
 import { Modal } from './Modal';
 import { StatusBadge } from './StatusBadge';
@@ -10,6 +16,8 @@ import { StatusBadge } from './StatusBadge';
 export interface MaoshTabProps {
 	maoshlar: MaoshYozuvi[];
 	hodimlar: Hodim[];
+	davomatlar?: DavomatYozuvi[];
+	soliqlar?: SoliqHisoboti[];
 	t: (typeof translations)['uz'];
 	onAddMaosh: (yangi: MaoshYozuvi) => void;
 	onUpdateMaosh: (tahrir: MaoshYozuvi) => void;
@@ -21,6 +29,8 @@ const fmt = (n: number) => (Number(n) || 0).toLocaleString('uz-UZ');
 export const MaoshTab: React.FC<MaoshTabProps> = ({
 	maoshlar,
 	hodimlar,
+	davomatlar = [],
+	soliqlar = [],
 	t,
 	onAddMaosh,
 	onUpdateMaosh,
@@ -35,17 +45,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 	const [berilgan, setBerilgan] = useState<number | ''>('');
 	const [izoh, setIzoh] = useState('');
 
-	const filtered = useMemo(() => {
-		return maoshlar
-			.filter(
-				m =>
-					m.ism.toLowerCase().includes(search.toLowerCase()) ||
-					parseOy(m.davr).includes(search),
-			)
-			.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
-	}, [maoshlar, search]);
-
-	// Xodimning haqiqiy shtat maoshini topish
+	// Xodimning shtat bo'yicha bazaviy maoshini olish
 	const getHodimOylik = (hId: string, hIsm?: string) => {
 		const h = hodimlar.find(
 			item => item.id === hId || (hIsm && item.ism === hIsm),
@@ -53,12 +53,12 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 		return h ? Number(h.oylikMaosh) || 0 : 0;
 	};
 
-	// Butun tizimdagi xodimlarning zanjirli oylik balansi (avanslar bilan)
+	// KPI, Davomat va Soliqlar monitoringi inobatga olingan holda xodimlarning zanjirli oylik balansi
 	const umumiyBalansMap = useMemo(() => {
-		return hisoblaHodimlarBalansi(hodimlar, maoshlar);
-	}, [hodimlar, maoshlar]);
+		return hisoblaHodimlarBalansi(hodimlar, maoshlar, davomatlar, soliqlar);
+	}, [hodimlar, maoshlar, davomatlar, soliqlar]);
 
-	// Tanlangan oy va xodim uchun haqiqiy qoldiq qarz yoki mavjud avansni hisoblash
+	// Modalda tanlangan xodim va davr bo'yicha qoldiq qarz yoki avansni hisoblash
 	const getHodimDavrHisob = (hId: string, oyStr: string) => {
 		const normOy = parseOy(oyStr);
 		const kalit = `${hId}_${normOy}`;
@@ -69,6 +69,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				qoldiqQarz: balans.qoldiqQarz,
 				avans: balans.yakuniyAvans,
 				boshlangichAvans: balans.boshlangichAvans,
+				hisoblanganMaosh: balans.hisoblanganMaosh,
 			};
 		}
 
@@ -90,13 +91,23 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 			qoldiqQarz: sofQarz,
 			avans: otganOydanBalans > shtatMaosh ? otganOydanBalans - shtatMaosh : 0,
 			boshlangichAvans: otganOydanBalans,
+			hisoblanganMaosh: shtatMaosh,
 		};
 	};
 
-	// Tepadagi kartochkalar va jadval qatorlari hisob-kitobi
-	const { jamiBelgilangan, jamiBerilgan, jamiQarz, hisoblanganQatorlar } =
+	const filtered = useMemo(() => {
+		return maoshlar
+			.filter(
+				m =>
+					m.ism.toLowerCase().includes(search.toLowerCase()) ||
+					parseOy(m.davr).includes(search),
+			)
+			.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+	}, [maoshlar, search]);
+
+	// Jadval qatorlari va tepadagi jamlama statistika
+	const { jamiHisoblangan, jamiBerilgan, jamiQarz, hisoblanganQatorlar } =
 		useMemo(() => {
-			// Har bir qator uchun kumulyativ oylik balansni biriktirish
 			const hisoblangan = filtered.map(m => {
 				const normOy = parseOy(m.davr);
 				const kalit = `${m.hodimId}_${normOy}`;
@@ -104,45 +115,68 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 				const shtat =
 					getHodimOylik(m.hodimId, m.ism) || Number(m.belgilangan) || 0;
+				const haqiqiyHisoblangan = oyBalans ? oyBalans.hisoblanganMaosh : shtat;
+				const bonus = oyBalans ? oyBalans.hisoblanganBonus : 0;
 				const haqiqiyQoldiq = oyBalans ? oyBalans.qoldiqQarz : 0;
 				const yakuniyAvans = oyBalans ? oyBalans.yakuniyAvans : 0;
 				const holat: StatusMaosh = haqiqiyQoldiq > 0 ? 'Qarzli' : 'Tolangan';
+				const tolovlarSoni = oyBalans ? oyBalans.tolovlarSoni : 1;
 
 				return {
 					...m,
 					haqiqiyBelgilangan: shtat,
+					haqiqiyHisoblangan,
+					bonus,
 					haqiqiyQoldiq,
 					yakuniyAvans,
 					haqiqiyHolat: holat,
+					tolovlarSoni,
 				};
 			});
 
-			// Faqat qidiruvda / filtrda qatnashayotgan oylarning umumiy summasi
+			// 1. Hisoblangan summani unikal oylar bo'yicha yig'ish (takrorlanishni oldini olish)
 			const unikalOylar = new Set<string>();
 			hisoblangan.forEach(m => {
 				unikalOylar.add(`${m.hodimId}_${parseOy(m.davr)}`);
 			});
 
-			let jamiBelg = 0;
-			let jamiHaqiqiyQarz = 0;
-
+			let jamiHisob = 0;
 			unikalOylar.forEach(kalit => {
 				const b = umumiyBalansMap.get(kalit);
 				if (b) {
-					jamiBelg += b.belgilangan;
-					jamiHaqiqiyQarz += b.qoldiqQarz;
+					jamiHisob += b.hisoblanganMaosh;
 				}
 			});
 
+			// 2. Berilgan summa — ro'yxatdagi barcha to'lovlar summasi
 			const jamiBer = filtered.reduce(
 				(acc, m) => acc + (Number(m.berilgan) || 0),
 				0,
 			);
 
+			// 3. Haqiqiy qoldiq qarz hisobi:
+			// Har bir xodimning ko'rilayotgan eng oxirgi davridagi yakuniy balansidan olinadi (eski oylarni qo'shib yubormaslik uchun)
+			const hodimlarOxirgiOyi = new Map<string, string>();
+			hisoblangan.forEach(m => {
+				const joriyOy = parseOy(m.davr);
+				const oxirgi = hodimlarOxirgiOyi.get(m.hodimId);
+				if (!oxirgi || joriyOy > oxirgi) {
+					hodimlarOxirgiOyi.set(m.hodimId, joriyOy);
+				}
+			});
+
+			let haqiqiySofQarz = 0;
+			hodimlarOxirgiOyi.forEach((oxirgiDavr, hId) => {
+				const oxirgiBalans = umumiyBalansMap.get(`${hId}_${oxirgiDavr}`);
+				if (oxirgiBalans) {
+					haqiqiySofQarz += oxirgiBalans.qoldiqQarz;
+				}
+			});
+
 			return {
-				jamiBelgilangan: jamiBelg,
+				jamiHisoblangan: jamiHisob,
 				jamiBerilgan: jamiBer,
-				jamiQarz: jamiHaqiqiyQarz,
+				jamiQarz: haqiqiySofQarz,
 				hisoblanganQatorlar: hisoblangan,
 			};
 		}, [filtered, hodimlar, umumiyBalansMap]);
@@ -234,6 +268,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 	return (
 		<div className='space-y-4'>
+			{/* QIDIRUV VA QO'SHISH TUGMASI */}
 			<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors'>
 				<input
 					type='text'
@@ -250,14 +285,14 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 				</button>
 			</div>
 
-			{/* STATISTIKA */}
+			{/* STATISTIKA KARTALARI */}
 			<div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
 				<div className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg'>
 					<div className='text-xs text-slate-500 dark:text-slate-400'>
-						{t.belgilangan}:
+						{t.hisoblangan} ({t.bonusKPI}):
 					</div>
 					<div className='text-base font-bold text-slate-800 dark:text-slate-100'>
-						{fmt(jamiBelgilangan)} UZS
+						{fmt(jamiHisoblangan)} UZS
 					</div>
 				</div>
 				<div className='bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-lg'>
@@ -284,22 +319,29 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 					<table className='w-full text-left text-sm text-slate-600 dark:text-slate-300'>
 						<thead className='bg-slate-50 dark:bg-slate-800/60 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800'>
 							<tr>
-								<th className='px-4 py-3.5'>{t.id}</th>
-								<th className='px-4 py-3.5'>{t.ismFamiliya}</th>
-								<th className='px-4 py-3.5'>{t.davr}</th>
-								<th className='px-4 py-3.5'>{t.belgilangan}</th>
-								<th className='px-4 py-3.5'>{t.berilgan}</th>
-								<th className='px-4 py-3.5'>{t.qoldiq}</th>
-								<th className='px-4 py-3.5'>{t.holat}</th>
-								<th className='px-4 py-3.5'>{t.izoh}</th>
-								<th className='px-4 py-3.5 text-right'>{t.amallar}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.id}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.ismFamiliya}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.davr}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.hisoblangan}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.bonusKPI}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.berilgan}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.qoldiq}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.holat}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.izoh}</th>
+								<th className='px-4 py-3.5 text-right whitespace-nowrap'>
+									{t.amallar}
+								</th>
 							</tr>
 						</thead>
 						<tbody className='divide-y divide-slate-100 dark:divide-slate-800'>
 							{hisoblanganQatorlar.length === 0 ? (
 								<tr>
 									<td
-										colSpan={9}
+										colSpan={10}
 										className='text-center py-8 text-slate-400 dark:text-slate-500'
 									>
 										—
@@ -311,35 +353,54 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 										key={m.id}
 										className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
 									>
-										<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100'>
+										<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap'>
 											{m.id}
 										</td>
-										<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100'>
+										<td className='px-4 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap'>
 											{m.ism}
 										</td>
-										<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400'>
+										<td className='px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap'>
 											{parseOy(m.davr)}
 										</td>
-										<td className='px-4 py-3'>
-											{fmt(m.haqiqiyBelgilangan)} UZS
+										<td className='px-4 py-3 whitespace-nowrap'>
+											<div className='font-semibold text-slate-900 dark:text-slate-100'>
+												{fmt(m.haqiqiyHisoblangan)} UZS
+											</div>
+											{m.haqiqiyHisoblangan !== m.haqiqiyBelgilangan && (
+												<div className='text-[10px] text-slate-400 line-through'>
+													{fmt(m.haqiqiyBelgilangan)} UZS
+												</div>
+											)}
 										</td>
-										<td className='px-4 py-3 font-medium text-emerald-600 dark:text-emerald-400'>
-											{fmt(m.berilgan)} UZS
+										<td className='px-4 py-3 whitespace-nowrap'>
+											<span className='text-xs font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded'>
+												+{fmt(m.bonus)} UZS
+											</span>
 										</td>
-										<td className='px-4 py-3 font-bold'>
+										<td className='px-4 py-3 whitespace-nowrap'>
+											<div className='font-medium text-emerald-600 dark:text-emerald-400'>
+												{fmt(m.berilgan)} UZS
+											</div>
+											{m.tolovlarSoni > 1 && (
+												<div className='text-[10px] text-slate-400'>
+													({m.tolovlarSoni} {t.tolovlarSoni})
+												</div>
+											)}
+										</td>
+										<td className='px-4 py-3 font-bold whitespace-nowrap'>
 											{m.haqiqiyQoldiq > 0 ? (
 												<span className='text-rose-600 dark:text-rose-400'>
 													{fmt(m.haqiqiyQoldiq)} UZS
 												</span>
 											) : m.yakuniyAvans > 0 ? (
 												<span className='text-sky-600 dark:text-sky-400 font-semibold text-xs bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded'>
-													Avans: +{fmt(m.yakuniyAvans)} UZS
+													{t.avans}: +{fmt(m.yakuniyAvans)} UZS
 												</span>
 											) : (
 												<span className='text-slate-500'>0 UZS</span>
 											)}
 										</td>
-										<td className='px-4 py-3'>
+										<td className='px-4 py-3 whitespace-nowrap'>
 											<StatusBadge status={m.haqiqiyHolat} t={t} />
 										</td>
 										<td
@@ -348,7 +409,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 										>
 											{m.izoh || '—'}
 										</td>
-										<td className='px-4 py-3 text-right space-x-2'>
+										<td className='px-4 py-3 text-right space-x-2 whitespace-nowrap'>
 											<button
 												onClick={() => handleOpenEdit(m)}
 												className='text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded hover:bg-amber-100 transition-colors'
@@ -400,7 +461,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 					<div>
 						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-							{t.davr} (Oy) *
+							{t.davr} *
 						</label>
 						<input
 							type='month'
@@ -411,17 +472,17 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 						/>
 					</div>
 
-					{/* O'tgan oydan o'tgan avans yoki qarz ko'rsatkichi */}
+					{/* Dinamik qoldiq/avans ko'rsatkichi */}
 					<div className='p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-1.5'>
 						{modalHisob.boshlangichAvans > 0 && (
 							<div className='flex justify-between items-center text-sky-600 dark:text-sky-400 font-semibold'>
-								<span>O‘tgan oydan o‘tgan avans:</span>
+								<span>{t.otganOydanAvans}:</span>
 								<span>+{fmt(modalHisob.boshlangichAvans)} UZS</span>
 							</div>
 						)}
 						<div className='flex justify-between items-center'>
 							<span className='text-slate-600 dark:text-slate-300'>
-								Oy bo‘yicha to‘lanishi kerak qoldiq:
+								{t.tolanishiKerakQoldiq}:
 							</span>
 							<span className='font-bold text-slate-900 dark:text-slate-100 text-sm'>
 								{fmt(modalHisob.qoldiqQarz)} UZS
@@ -431,7 +492,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 
 					<div>
 						<label className='block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-1'>
-							{t.berilgan} (Kassadan berilayotgan summa) *
+							{t.kassadanBerilayotganSumma} *
 						</label>
 						<input
 							type='number'
@@ -454,7 +515,7 @@ export const MaoshTab: React.FC<MaoshTabProps> = ({
 							value={izoh}
 							onChange={e => setIzoh(e.target.value)}
 							rows={2}
-							placeholder='Masalan: Qisman to‘lov yoki Avans'
+							placeholder={t.qismanTolovPlaceholder}
 							className='w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg text-sm focus:outline-none focus:border-sky-500'
 						/>
 					</div>

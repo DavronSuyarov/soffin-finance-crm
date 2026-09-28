@@ -20,6 +20,7 @@ export const translations = {
 		saqlash: 'Saqlash',
 		bekorQilish: 'Bekor qilish',
 		ochirish: 'O‘chirish',
+		ochirishTasdiq: 'Haqiqatan ham o‘chirmoqchimisiz?',
 		tahrirlash: 'Tahrirlash',
 		amallar: 'Amallar',
 		barchaHolatlar: 'Barcha holatlar',
@@ -31,6 +32,9 @@ export const translations = {
 		holat: 'Holat',
 		summa: 'Summa',
 		valyuta: 'Valyuta',
+		marta: 'marta',
+		kun: 'kun',
+		ta: 'ta',
 
 		// Dashboard bo'limi (Kartochkalar va Grafika)
 		chiqimStrukturasi: 'Xarajatlar strukturasi',
@@ -163,12 +167,23 @@ export const translations = {
 		kechikkanHisobotlar: 'Kechikkan hisobotlar',
 		hisoblanganBonus: 'Haqiqiy bonus',
 		yakuniyMaosh: 'Jami to‘lanadigan maosh',
+		kpiQoidasi:
+			'85% kafolatlangan shtat qismi + 15% intizom va sifat bonus fondi',
+		oylikDavomatYozuvlari: 'Oylik davomat yozuvlari',
 
 		// Maoshlar
 		belgilangan: 'Belgilangan maosh',
 		berilgan: 'Berilgan summa',
 		qoldiq: 'Qoldiq (Qarz)',
 		yangiMaosh: '+ Maosh to‘lovi yozish',
+		hisoblangan: 'Hisoblangan',
+		bonusKPI: 'KPI / Bonus',
+		avans: 'Avans',
+		otganOydanAvans: 'O‘tgan oydan o‘tgan avans',
+		tolanishiKerakQoldiq: 'Oy bo‘yicha to‘lanishi kerak qoldiq',
+		kassadanBerilayotganSumma: 'Kassadan berilayotgan summa',
+		qismanTolovPlaceholder: 'Masalan: Qisman to‘lov yoki Avans',
+		tolovlarSoni: 'to‘lov',
 
 		// Universal statuslar
 		statuslar: {
@@ -205,6 +220,7 @@ export const translations = {
 		saqlash: 'Сохранить',
 		bekorQilish: 'Отмена',
 		ochirish: 'Удалить',
+		ochirishTasdiq: 'Вы действительно хотите удалить?',
 		tahrirlash: 'Редактировать',
 		amallar: 'Действия',
 		barchaHolatlar: 'Все статусы',
@@ -216,6 +232,9 @@ export const translations = {
 		holat: 'Статус',
 		summa: 'Сумма',
 		valyuta: 'Валюта',
+		marta: 'раз',
+		kun: 'дн.',
+		ta: 'шт.',
 
 		// Главная
 		chiqimStrukturasi: 'Структура расходов',
@@ -345,12 +364,23 @@ export const translations = {
 		kechikkanHisobotlar: 'Просроченные отчеты',
 		hisoblanganBonus: 'Начисленный бонус',
 		yakuniyMaosh: 'Итого к выплате',
+		kpiQoidasi:
+			'85% гарантированный оклад + 15% бонусный фонд дисциплины и качества',
+		oylikDavomatYozuvlari: 'Ежемесячные записи посещаемости',
 
 		// Зарплаты
 		belgilangan: 'Установлено',
 		berilgan: 'Выплачено',
 		qoldiq: 'Остаток (Долг)',
 		yangiMaosh: '+ Выплата зарплаты',
+		hisoblangan: 'Начислено',
+		bonusKPI: 'KPI / Бонус',
+		avans: 'Аванс',
+		otganOydanAvans: 'Аванс с прошлого месяца',
+		tolanishiKerakQoldiq: 'Остаток к выплате за месяц',
+		kassadanBerilayotganSumma: 'Выдаваемая сумма из кассы',
+		qismanTolovPlaceholder: 'Например: Аванс или частичная выплата',
+		tolovlarSoni: 'выплат',
 
 		// Статусы
 		statuslar: {
@@ -387,6 +417,7 @@ export const translations = {
 		saqlash: 'Save',
 		bekorQilish: 'Cancel',
 		ochirish: 'Delete',
+		ochirishTasdiq: 'Are you sure you want to delete?',
 		tahrirlash: 'Edit',
 		amallar: 'Actions',
 		barchaHolatlar: 'All statuses',
@@ -398,6 +429,9 @@ export const translations = {
 		holat: 'Status',
 		summa: 'Amount',
 		valyuta: 'Currency',
+		marta: 'times',
+		kun: 'days',
+		ta: 'items',
 
 		// Dashboard
 		chiqimStrukturasi: 'Expense Structure',
@@ -527,12 +561,22 @@ export const translations = {
 		kechikkanHisobotlar: 'Overdue Reports',
 		hisoblanganBonus: 'Earned Bonus',
 		yakuniyMaosh: 'Total Payout',
+		kpiQoidasi: '85% guaranteed base + 15% discipline and quality bonus pool',
+		oylikDavomatYozuvlari: 'Monthly attendance records',
 
 		// Salaries
 		belgilangan: 'Designated',
 		berilgan: 'Paid Out',
 		qoldiq: 'Balance Due',
 		yangiMaosh: '+ Record Salary',
+		hisoblangan: 'Accrued',
+		bonusKPI: 'KPI / Bonus',
+		avans: 'Advance',
+		otganOydanAvans: 'Advance from previous month',
+		tolanishiKerakQoldiq: 'Remaining balance for month',
+		kassadanBerilayotganSumma: 'Amount paid from cashbox',
+		qismanTolovPlaceholder: 'E.g.: Partial payment or Advance',
+		tolovlarSoni: 'payments',
 
 		// Statuses
 		statuslar: {

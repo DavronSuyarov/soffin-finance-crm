@@ -66,7 +66,7 @@ export function mapRowToMijoz(row: string[]): Mijoz {
 		tarifSummasi: parseNumber(row[8]) || 0,
 		tolovKuni: parseNumber(row[9]) || 5,
 		masulHodimId: parseString(row[10]),
-		soliqRejimi: (parseString(row[11]) || 'AOS') as SoliqRejimi, // <-- Soliq Rejimi (AOS / Umumbelgilangan / Nodavlat)
+		soliqRejimi: (parseString(row[11]) || 'AOS') as SoliqRejimi,
 	};
 }
 
@@ -121,7 +121,19 @@ export function mapRowToChiqim(row: string[]): Chiqim {
 export function mapRowToMaosh(row: string[]): MaoshYozuvi {
 	const belgilangan = parseNumber(row[4]);
 	const berilgan = parseNumber(row[5]);
-	const qoldiq = Math.max(0, belgilangan - berilgan);
+
+	// Agar Google Sheets da qoldiq ustuni alohida bo'lsa uni o'qiymiz, bo'lmasa qoldiqni hisoblaymiz
+	const rawQoldiq =
+		row[6] !== undefined
+			? parseNumber(row[6])
+			: Math.max(0, belgilangan - berilgan);
+	const holatStr = parseString(row[7]);
+	const holat: StatusMaosh =
+		holatStr === 'Qarzli' || holatStr === 'Tolangan'
+			? (holatStr as StatusMaosh)
+			: rawQoldiq > 0
+				? 'Qarzli'
+				: 'Tolangan';
 
 	return {
 		id: parseString(row[0]),
@@ -130,11 +142,11 @@ export function mapRowToMaosh(row: string[]): MaoshYozuvi {
 		davr: parseString(row[3]),
 		belgilangan,
 		berilgan,
-		qoldiq,
-		holat: (qoldiq > 0 ? 'Qarzli' : 'Tolangan') as StatusMaosh,
-		kpiBonus: parseNumber(row[6]),
-		jarimaChegirma: parseNumber(row[7]),
+		qoldiq: rawQoldiq,
+		holat,
 		izoh: parseString(row[8]),
+		kpiBonus: parseNumber(row[9]),
+		jarimaChegirma: parseNumber(row[10]),
 	};
 }
 
@@ -151,7 +163,7 @@ export function mapRowToSoliq(row: string[]): SoliqHisoboti {
 		masulHodimId: parseString(row[8]),
 		masulHodimIsm: parseString(row[9]),
 		izoh: parseString(row[10]),
-		davriyligi: (parseString(row[11]) || 'Oylik') as SoliqHisobotiDavriyligi, // <-- Davriyligi (Oylik / Choraklik / Yillik)
+		davriyligi: (parseString(row[11]) || 'Oylik') as SoliqHisobotiDavriyligi,
 	};
 }
 
@@ -184,7 +196,7 @@ export function mapMijozToRow(m: Mijoz): any[] {
 		Number(m.tarifSummasi) || 0,
 		Number(m.tolovKuni) || 5,
 		m.masulHodimId || '',
-		m.soliqRejimi || 'AOS', // <-- 11-indeks (12-ustun)
+		m.soliqRejimi || 'AOS',
 	];
 }
 
@@ -240,9 +252,11 @@ export function mapMaoshToRow(m: MaoshYozuvi): any[] {
 		m.davr,
 		Number(m.belgilangan) || 0,
 		Number(m.berilgan) || 0,
+		Number(m.qoldiq) || 0,
+		m.holat || 'Tolangan',
+		m.izoh || '',
 		Number(m.kpiBonus) || 0,
 		Number(m.jarimaChegirma) || 0,
-		m.izoh || '',
 	];
 }
 
@@ -259,7 +273,7 @@ export function mapSoliqToRow(s: SoliqHisoboti): any[] {
 		s.masulHodimId || '',
 		s.masulHodimIsm || '',
 		s.izoh || '',
-		s.davriyligi || 'Oylik', // <-- 11-indeks (12-ustun)
+		s.davriyligi || 'Oylik',
 	];
 }
 

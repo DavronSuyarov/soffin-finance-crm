@@ -45,6 +45,52 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 	const [kechikishDaqiqa, setKechikishDaqiqa] = useState<number>(0);
 	const [izoh, setIzoh] = useState('');
 
+	// 3 tilli lokalizatsiya yordamchilari
+	const i18nText = {
+		kpiQoidasi:
+			(t as any).kpiQoidasi ||
+			(t.amallar === 'Действия'
+				? '85% гарантированный оклад + 15% бонусный фонд дисциплины и качества'
+				: t.amallar === 'Actions'
+					? '85% guaranteed base + 15% discipline and quality bonus pool'
+					: '85% kafolatlangan shtat qismi + 15% intizom va sifat bonus fondi'),
+		oylikDavomatYozuvlari:
+			(t as any).oylikDavomatYozuvlari ||
+			(t.amallar === 'Действия'
+				? 'Ежемесячные записи посещаемости'
+				: t.amallar === 'Actions'
+					? 'Monthly attendance records'
+					: 'Oylik davomat yozuvlari'),
+		marta:
+			(t as any).marta ||
+			(t.amallar === 'Действия'
+				? 'раз'
+				: t.amallar === 'Actions'
+					? 'times'
+					: 'marta'),
+		kun:
+			(t as any).kun ||
+			(t.amallar === 'Действия'
+				? 'дн.'
+				: t.amallar === 'Actions'
+					? 'days'
+					: 'kun'),
+		ta:
+			(t as any).ta ||
+			(t.amallar === 'Действия'
+				? 'шт.'
+				: t.amallar === 'Actions'
+					? 'items'
+					: 'ta'),
+		ochirishTasdiq:
+			(t as any).ochirishTasdiq ||
+			(t.amallar === 'Действия'
+				? 'Вы действительно хотите удалить?'
+				: t.amallar === 'Actions'
+					? 'Are you sure you want to delete?'
+					: 'Haqiqatan ham o‘chirmoqchimisiz?'),
+	};
+
 	// Faol xodimlar bo'yicha KPI hisob-kitoblarini shakllantirish
 	const kpiHisobotlar = useMemo(() => {
 		const faolHodimlar = hodimlar.filter(
@@ -86,7 +132,14 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 	};
 
 	const handleOpenAddDavomat = () => {
-		const birinchi = hodimlar.length ? hodimlar[0].id : '';
+		const faollar = hodimlar.filter(
+			h => h.holat === 'Faol' || (h as any).status === 'Faol',
+		);
+		const birinchi = faollar.length
+			? faollar[0].id
+			: hodimlar.length
+				? hodimlar[0].id
+				: '';
 		setHodimId(birinchi);
 		setSana(new Date().toISOString().slice(0, 10));
 		setKelganVaqt('09:30');
@@ -154,7 +207,7 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 							🎯 {t.kpiDavomat} — {tanlanganDavr}
 						</h3>
 						<p className='text-xs text-slate-500 dark:text-slate-400 mt-0.5'>
-							85% kafolatlangan shtat qismi + 15% intizom va sifat bonus fondi
+							{i18nText.kpiQoidasi}
 						</p>
 					</div>
 				</div>
@@ -163,15 +216,31 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 					<table className='w-full text-left text-sm text-slate-600 dark:text-slate-300'>
 						<thead className='bg-slate-50 dark:bg-slate-800/60 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800'>
 							<tr>
-								<th className='px-4 py-3.5'>{t.ismFamiliya}</th>
-								<th className='px-4 py-3.5'>{t.bazaviyMaosh}</th>
-								<th className='px-4 py-3.5'>{t.asosiyQism}</th>
-								<th className='px-4 py-3.5'>{t.bonusFond}</th>
-								<th className='px-4 py-3.5'>{t.kechikishlar}</th>
-								<th className='px-4 py-3.5'>{t.kelmaganKunlar}</th>
-								<th className='px-4 py-3.5'>{t.kechikkanHisobotlar}</th>
-								<th className='px-4 py-3.5'>{t.hisoblanganBonus}</th>
-								<th className='px-4 py-3.5 text-right'>{t.yakuniyMaosh}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.ismFamiliya}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.bazaviyMaosh}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.asosiyQism}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>{t.bonusFond}</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.kechikishlar}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.kelmaganKunlar}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.kechikkanHisobotlar}
+								</th>
+								<th className='px-4 py-3.5 whitespace-nowrap'>
+									{t.hisoblanganBonus}
+								</th>
+								<th className='px-4 py-3.5 text-right whitespace-nowrap'>
+									{t.yakuniyMaosh}
+								</th>
 							</tr>
 						</thead>
 						<tbody className='divide-y divide-slate-100 dark:divide-slate-800'>
@@ -193,22 +262,22 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 											key={k.hodimId}
 											className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
 										>
-											<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100'>
+											<td className='px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap'>
 												{k.ism}
 											</td>
-											<td className='px-4 py-3 text-slate-700 dark:text-slate-300'>
+											<td className='px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap'>
 												{fmt(k.bazaviyMaosh)} UZS
 											</td>
-											<td className='px-4 py-3 font-medium text-slate-600 dark:text-slate-400'>
+											<td className='px-4 py-3 font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap'>
 												{fmt(k.asosiyQism)} UZS
 											</td>
-											<td className='px-4 py-3 font-medium text-indigo-600 dark:text-indigo-400'>
+											<td className='px-4 py-3 font-medium text-indigo-600 dark:text-indigo-400 whitespace-nowrap'>
 												{fmt(k.bonusFond)} UZS
 											</td>
-											<td className='px-4 py-3'>
+											<td className='px-4 py-3 whitespace-nowrap'>
 												{k.kechikishlarSoni > 0 ? (
 													<span className='px-2 py-0.5 rounded text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'>
-														{k.kechikishlarSoni} marta
+														{k.kechikishlarSoni} {i18nText.marta}
 													</span>
 												) : (
 													<span className='text-emerald-600 dark:text-emerald-400 text-xs font-semibold'>
@@ -216,10 +285,10 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 													</span>
 												)}
 											</td>
-											<td className='px-4 py-3'>
+											<td className='px-4 py-3 whitespace-nowrap'>
 												{k.sababsizKelmadiKun > 0 ? (
 													<span className='px-2 py-0.5 rounded text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'>
-														{k.sababsizKelmadiKun} kun
+														{k.sababsizKelmadiKun} {i18nText.kun}
 													</span>
 												) : (
 													<span className='text-emerald-600 dark:text-emerald-400 text-xs font-semibold'>
@@ -227,10 +296,10 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 													</span>
 												)}
 											</td>
-											<td className='px-4 py-3'>
+											<td className='px-4 py-3 whitespace-nowrap'>
 												{k.kechiktirilganHisobotlar > 0 ? (
 													<span className='px-2 py-0.5 rounded text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'>
-														{k.kechiktirilganHisobotlar} ta ⚠️
+														{k.kechiktirilganHisobotlar} {i18nText.ta} ⚠️
 													</span>
 												) : (
 													<span className='text-emerald-600 dark:text-emerald-400 text-xs font-semibold'>
@@ -238,7 +307,7 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 													</span>
 												)}
 											</td>
-											<td className='px-4 py-3'>
+											<td className='px-4 py-3 whitespace-nowrap'>
 												<span
 													className={`font-bold ${
 														bonusKamaygan
@@ -249,7 +318,7 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 													{fmt(k.hisoblanganBonus)} UZS
 												</span>
 											</td>
-											<td className='px-4 py-3 text-right font-extrabold text-slate-900 dark:text-slate-100 text-sm'>
+											<td className='px-4 py-3 text-right font-extrabold text-slate-900 dark:text-slate-100 text-sm whitespace-nowrap'>
 												{fmt(k.jamiHisoblanganMaosh)} UZS
 											</td>
 										</tr>
@@ -265,20 +334,24 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 			<div className='bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors'>
 				<div className='p-4 border-b border-slate-200 dark:border-slate-800'>
 					<h4 className='font-bold text-slate-800 dark:text-slate-100 text-sm'>
-						📅 {tanlanganDavr} — Oylik Davomat Yozuvlari
+						📅 {tanlanganDavr} — {i18nText.oylikDavomatYozuvlari}
 					</h4>
 				</div>
 				<div className='overflow-x-auto'>
 					<table className='w-full text-left text-sm text-slate-600 dark:text-slate-300'>
 						<thead className='bg-slate-50 dark:bg-slate-800/60 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800'>
 							<tr>
-								<th className='px-4 py-3'>{t.sana}</th>
-								<th className='px-4 py-3'>{t.ismFamiliya}</th>
-								<th className='px-4 py-3'>{t.kelganVaqt}</th>
-								<th className='px-4 py-3'>{t.holat}</th>
-								<th className='px-4 py-3'>{t.kechikishDaqiqa}</th>
-								<th className='px-4 py-3'>{t.izoh}</th>
-								<th className='px-4 py-3 text-right'>{t.amallar}</th>
+								<th className='px-4 py-3 whitespace-nowrap'>{t.sana}</th>
+								<th className='px-4 py-3 whitespace-nowrap'>{t.ismFamiliya}</th>
+								<th className='px-4 py-3 whitespace-nowrap'>{t.kelganVaqt}</th>
+								<th className='px-4 py-3 whitespace-nowrap'>{t.holat}</th>
+								<th className='px-4 py-3 whitespace-nowrap'>
+									{t.kechikishDaqiqa}
+								</th>
+								<th className='px-4 py-3 whitespace-nowrap'>{t.izoh}</th>
+								<th className='px-4 py-3 text-right whitespace-nowrap'>
+									{t.amallar}
+								</th>
 							</tr>
 						</thead>
 						<tbody className='divide-y divide-slate-100 dark:divide-slate-800'>
@@ -300,19 +373,19 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 											key={d.id}
 											className='hover:bg-slate-50/75 dark:hover:bg-slate-800/40 transition-colors'
 										>
-											<td className='px-4 py-2.5 font-mono text-xs'>
+											<td className='px-4 py-2.5 font-mono text-xs whitespace-nowrap'>
 												{d.sana}
 											</td>
-											<td className='px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100'>
+											<td className='px-4 py-2.5 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap'>
 												{hodim?.ism || d.hodimId}
 											</td>
-											<td className='px-4 py-2.5 text-xs'>
+											<td className='px-4 py-2.5 text-xs whitespace-nowrap'>
 												{d.kelganVaqt || '—'}
 											</td>
-											<td className='px-4 py-2.5'>
+											<td className='px-4 py-2.5 whitespace-nowrap'>
 												<StatusBadge status={d.holat} t={t} />
 											</td>
-											<td className='px-4 py-2.5 text-xs'>
+											<td className='px-4 py-2.5 text-xs whitespace-nowrap'>
 												{d.kechikishDaqiqa > 0 ? (
 													<span className='text-rose-600 dark:text-rose-400 font-semibold'>
 														+{d.kechikishDaqiqa} daq
@@ -321,17 +394,17 @@ export const KpiTab: React.FC<KpiTabProps> = ({
 													'—'
 												)}
 											</td>
-											<td className='px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400'>
+											<td className='px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate'>
 												{d.izoh || '—'}
 											</td>
-											<td className='px-4 py-2.5 text-right'>
+											<td className='px-4 py-2.5 text-right whitespace-nowrap'>
 												<button
 													onClick={() => {
-														if (confirm(`Davomat yozuvini o'chirasizmi?`)) {
+														if (confirm(i18nText.ochirishTasdiq)) {
 															onDeleteDavomat(d.id);
 														}
 													}}
-													className='text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400'
+													className='text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors'
 												>
 													🗑️
 												</button>

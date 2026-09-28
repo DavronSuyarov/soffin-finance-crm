@@ -63,7 +63,7 @@ export interface Mijoz {
 	tolovKuni: number; // Har oyning qaysi sanasigacha to'lanishi kerak (1-31)
 	status: StatusMijoz;
 	masulHodimId?: string; // Ushbu mijozga mas'ul buxgalter IDsi
-	soliqRejimi?: SoliqRejimi; // <-- Yangi: Mijozning soliq rejimi (AOS / Umumbelgilangan / Nodavlat)
+	soliqRejimi?: SoliqRejimi; // Mijozning soliq rejimi (AOS / Umumbelgilangan / Nodavlat)
 	izoh?: string;
 	sana: string;
 }
@@ -118,11 +118,12 @@ export interface MaoshYozuvi {
 	holat: StatusMaosh;
 	kpiBonus?: number; // Hisoblangan KPI bonus summasi
 	jarimaChegirma?: number; // Intizom/kechikish bo'yicha kamaytirilgan summa
+	tolovlarSoni?: number; // Shu oyda amalga oshirilgan to'lov tranzaksiyalari soni
 	izoh?: string;
 }
 
 // ============================================================
-// 3. SOLIQ VA KPI MODELLARI
+// 3. SOLIQ, DAVOMAT VA KPI MODELLARI
 // ============================================================
 export interface SoliqHisoboti {
 	id: string;
@@ -170,6 +171,24 @@ export interface HodimKPIHisob {
 	// Yakuniy natija
 	hisoblanganBonus: number;
 	jamiHisoblanganMaosh: number;
+}
+
+// Xodimlarning oylik yig'ma kumulyativ balansi modeli
+export interface HodimOyBalansi {
+	kalit: string; // hodimId_YYYY-MM
+	hodimId: string;
+	ism: string;
+	davr: string;
+	boshlangichAvans: number; // O'tgan oydan o'tgan avans (+) yoki korxona qarzi (-)
+	belgilangan: number; // Bazaviy shtat oyligi
+	hisoblanganMaosh: number; // KPI va davomat hisobga olingan to'lanishi lozim bo'lgan maosh
+	hisoblanganBonus: number; // Ushbu oy uchun hisoblangan bonus
+	chegirmaFoiz: number; // Bonusdan chegirilgan umumiy intizom foizi
+	berilgan: number; // Shu oyda to'langan jami summa (barcha avans va qisman to'lovlar yig'indisi)
+	tolovlarSoni: number; // Shu oyda nechta to'lov tranzaksiyasi amalga oshirilgani
+	qoldiqQarz: number; // Ushbu oy yakunidagi korxonaning xodimga sof qarzi
+	yakuniyAvans: number; // Ushbu oy yakunidagi xodimga ortiqcha to'langan summa (keyingi oyga o'tadi)
+	holat: StatusMaosh;
 }
 
 // ============================================================
