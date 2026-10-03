@@ -76,7 +76,6 @@ export function hisoblaMijozlarQarzi(
 
 /**
  * Xodimning oylik KPI va 15% lik Bonus fondini hisoblash
- * (Davomat va Soliq hisobotlari intizomini to'liq inobatga oladi)
  */
 export function hisoblaHodimKPI(
 	hodim: Hodim,
@@ -168,7 +167,7 @@ export interface HodimOyBalansi {
 	hisoblanganMaosh: number; // KPI va davomat natijalaridan keyingi yakuniy to'lanishi lozim bo'lgan maosh
 	hisoblanganBonus: number; // Ushbu oy uchun hisoblangan bonus
 	chegirmaFoiz: number; // Bonusdan chegirilgan umumiy foiz
-	berilgan: number; // Shu oyda amalda to'langan jami summa (barcha avans va qisman to'lovlar yig'indisi)
+	berilgan: number; // Shu oyda amalda to'langan jami summa
 	tolovlarSoni: number; // Shu oyda nechta to'lov tranzaksiyasi amalga oshirilgani
 	qoldiqQarz: number; // Ushbu oy yakunidagi korxonaning xodimga sof qarzi
 	yakuniyAvans: number; // Ushbu oy yakunidagi xodimga ortiqcha to'langan summa (keyingi oyga o'tadi)
@@ -176,8 +175,8 @@ export interface HodimOyBalansi {
 }
 
 /**
- * Xodimlarning oylik maosh balansini kumulyativ (KPI, Davomat va avanslarni keyingi oyga o'tkazgan holda) hisoblash.
- * Bir oyda bir necha to'lov bo'lsa ham belgilangan summani takrorlamaydi.
+ * Xodimlarning oylik maosh balansini kumulyativ hisoblash.
+ * Xodimning faoliyati boshlangan birinchi oyidan oldingi oylar uchun soxta qarz hisoblamaydi.
  */
 export function hisoblaHodimlarBalansi(
 	hodimlar: Hodim[],
@@ -187,9 +186,8 @@ export function hisoblaHodimlarBalansi(
 ): Map<string, HodimOyBalansi> {
 	const natijaMap = new Map<string, HodimOyBalansi>();
 
-	// 1. Maosh to'lovlari, davomat va soliqlarda qatnashgan barcha oylarni to'plash
+	// 1. Tizimda mavjud barcha oylar
 	const oylarSet = new Set<string>();
-
 	maoshlar.forEach(m => {
 		const o = parseOy(m.davr);
 		if (o) oylarSet.add(o);
@@ -203,7 +201,6 @@ export function hisoblaHodimlarBalansi(
 		if (o) oylarSet.add(o);
 	});
 
-	// Agar hech qanday davr bo'lmasa, joriy oyni qo'shamiz
 	if (oylarSet.size === 0) {
 		oylarSet.add(parseOy(new Date().toISOString()));
 	}
@@ -212,12 +209,44 @@ export function hisoblaHodimlarBalansi(
 
 	// 2. Har bir xodim bo'yicha xronologik hisob-kitob
 	hodimlar.forEach(h => {
-		let kumulyativBalans = 0; // Musbat (+) bo'lsa xodimda avans bor, manfiy (-) bo'lsa korxona qarzdor
+		let kumulyativBalans = 0;
+
+		// Xodimning eng birinchi harakati qaysi oydan boshlanganini aniqlaymiz:
+		// 1) Maosh to'lovi bor oy, 2) Davomat qayd etilgan oy, 3) Xodim ishga kirgan sana (h.sana)
+		const hodimOylari: string[] = [];
+
+		maoshlar.forEach(m => {
+			if (m.hodimId === h.id || m.ism === h.ism) {
+				const o = parseOy(m.davr);
+				if (o) hodimOylari.push(o);
+			}
+		});
+		davomatlar.forEach(d => {
+			if (d.hodimId === h.id || (d as any).ism === h.ism) {
+				const o = parseOy(d.sana);
+				if (o) hodimOylari.push(o);
+			}
+		});
+		if (h.sana) {
+			const kirganOy = parseOy(h.sana);
+			if (kirganOy) hodimOylari.push(kirganOy);
+		}
+
+		hodimOylari.sort();
+		// Agar xodimda hech qanday harakat bo'lmasa, eng oxirgi oyni olamiz
+		const birinchiFaolOy =
+			hodimOylari.length > 0
+				? hodimOylari[0]
+				: barchaOylar[barchaOylar.length - 1];
 
 		barchaOylar.forEach(oy => {
+			// Xodimning faoliyati boshlanishidan oldingi oylarni hisobga OLMAYMIZ (soxta qarz vujudga kelmasligi uchun)
+			if (oy < birinchiFaolOy) {
+				return;
+			}
+
 			const shtat = Number(h.oylikMaosh) || 0;
 
-			// Xodimning shu oydagi barcha to'lovlari (avans, qisman va h.k.)
 			const oyTolovlar = maoshlar.filter(
 				m => (m.hodimId === h.id || m.ism === h.ism) && parseOy(m.davr) === oy,
 			);
@@ -227,7 +256,7 @@ export function hisoblaHodimlarBalansi(
 				0,
 			);
 
-			// Agar bu oyda to'lov bo'lmasa, kumulyativ balans ham 0 bo'lsa va xodim nofaol bo'lsa o'tkazib yuboramiz
+			// Agar bu oyda to'lov bo'lmasa, o'tgan oydan qoldiq ham bo'lmasa va xodim nofaol bo'lsa
 			const isFaol = h.holat === 'Faol' || (h as any).status === 'Faol';
 			if (oyTolovlar.length === 0 && kumulyativBalans === 0 && !isFaol) {
 				return;
@@ -239,8 +268,7 @@ export function hisoblaHodimlarBalansi(
 
 			const boshlangichAvans = kumulyativBalans;
 
-			// Sof balans formulasi:
-			// O'tgan oydan o'tgan qoldiq/avans + Bu oy to'langanlar - Shu oyda hisoblangan haqiqiy maosh
+			// Sof balans: O'tgan oydan o'tgan balans + Bu oy berilgan summa - Shu oy hisoblangan maosh
 			const sofOyBalansi =
 				boshlangichAvans + oyBerilgan - haqiqiyHisoblanganMaosh;
 			kumulyativBalans = sofOyBalansi;
@@ -330,13 +358,12 @@ export function calculateDashboardSummary(
 		kategoriyaXarajatlar[kat] = (kategoriyaXarajatlar[kat] || 0) + summa;
 	});
 
-	// 4. Maoshlar chiqimi va xodimlarga haqiqiy qarz hisobi (KPI va kumulyativ avans hisobga olingan holda)
+	// 4. Maoshlar chiqimi va xodimlarga haqiqiy qarz hisobi
 	let berilganMaosh = 0;
 	maoshlar.forEach(m => {
 		berilganMaosh += Number(m.berilgan) || 0;
 	});
 
-	// Yangilangan hisoblaHodimlarBalansi ga davomatlar va soliqlar uzatiladi
 	const xodimlarBalansi = hisoblaHodimlarBalansi(
 		hodimlar,
 		maoshlar,
@@ -345,7 +372,6 @@ export function calculateDashboardSummary(
 	);
 	let xodimlardanQarz = 0;
 
-	// Har bir xodimning eng oxirgi oydagi kumulyativ qoldiq qarzini jamlash
 	hodimlar.forEach(h => {
 		const hodimOylari = Array.from(xodimlarBalansi.values())
 			.filter(item => item.hodimId === h.id)
@@ -360,7 +386,7 @@ export function calculateDashboardSummary(
 	const umumiyChiqim = operatsionChiqim + berilganMaosh;
 	const sofFoyda = jamiKirim - umumiyChiqim;
 
-	// 5. Chiqimlar strukturasi (Kassadan chiqqan pul asosida)
+	// 5. Chiqimlar strukturasi
 	if (berilganMaosh > 0) {
 		kategoriyaXarajatlar['Maosh'] =
 			(kategoriyaXarajatlar['Maosh'] || 0) + berilganMaosh;
